@@ -116,13 +116,14 @@ def window_fit(func, y, x=None, timepoints=10, windowsize=30, windowstep=10):
         end_ind = np.clip(end_ind, 0, end_of_series)
         windowed_y = y[start_ind:end_ind]
         windowed_x = x[start_ind:end_ind]
+        half_point = start_ind + end_ind // 2
 
         chi2 = float('+inf')
         if np.sum(np.isfinite(windowed_y)) >= windowsize // 2:
             for rate in (.1, .17, .1, .7, 1):
                 try:
                     _popt, _, _, (_, res) = nanfit(func, windowed_y, xdata=windowed_x, timepoints=timepoints,
-                                                   p0=[0.2, 0.2, rate, x[start_ind + windowsize // 2]], returnfit=True)
+                                                   p0=[0.2, 0.2, rate, x[half_point]], returnfit=True)
                     _chi2 = np.nansum(res * res)
                     if _chi2 < chi2:
                         popt = np.copy(_popt)
