@@ -7,7 +7,7 @@ def sigmoid(x, base, amplitude, rate, x0):
     """
     Sigmoid function.
     """
-    y = base + amplitude / (1 + np.exp(-rate*(x-x0)))
+    y = base + amplitude / (1 + np.exp(-rate * (x - x0)))
     return y
 
 
@@ -15,7 +15,7 @@ def sigmoid_der1(x, base, amplitude, rate, x0):
     """
     First derivative of sigmoid function.
     """
-    return (amplitude*rate * np.exp(-rate*(x-x0))) / ((1 + np.exp(-rate*(x-x0)))**2)
+    return (amplitude * rate * np.exp(-rate * (x - x0))) / ((1 + np.exp(-rate * (x - x0))) ** 2)
 
 
 def nanfit(func, ydata, xdata=None, timepoints=10, returnfit=False, p0=None):
@@ -55,7 +55,7 @@ def nanfit(func, ydata, xdata=None, timepoints=10, returnfit=False, p0=None):
 
     mask = np.where(np.isfinite(ydata))
 
-    if mask ==  np.array([]):
+    if mask == np.array([]):
         popt = None
         pcov = None
     else:
@@ -109,8 +109,11 @@ def window_fit(func, y, x=None, timepoints=10, windowsize=30, windowstep=10):
 
     popts = []
     start_ind = 0
-    end_ind = 0 + windowsize
-    while end_ind <= y.shape[0]:
+    end_ind = 0
+    end_of_series = y.shape[0]
+    while end_ind < end_of_series:
+        end_ind += windowsize
+        end_ind = np.clip(end_ind, 0, end_of_series)
         windowed_y = y[start_ind:end_ind]
         windowed_x = x[start_ind:end_ind]
 
@@ -134,6 +137,5 @@ def window_fit(func, y, x=None, timepoints=10, windowsize=30, windowstep=10):
             popts.append([np.nan] * 4)
 
         start_ind += windowstep
-        end_ind += windowstep
 
     return popts
