@@ -1,5 +1,7 @@
 import numpy as np
 
+import matplotlib.pyplot as plt
+from matplotlib.widgets import RectangleSelector, Button
 from scipy.optimize import curve_fit
 
 
@@ -140,3 +142,93 @@ def window_fit(func, y, x=None, timepoints=10, windowsize=30, windowstep=10):
         start_ind += windowstep
 
     return popts
+
+
+def is_apoptotic(base, amplitude, rate, x0,
+                    base_lim=(-0.1, 0.5),
+                    amplitude_lim=(0.005, 0.5),
+                    rate_lim=(0, np.inf),
+                    x0_lim=(0, np.inf)):
+    """
+    Quick checks that parameters of sigmoid are within possible range.
+
+    -0.1 <= base <= 0.5
+    0.005 <= amplitude <= 0.5
+    0 <= rate <= np.inf
+    0 <= x0 <= np.inf
+    """
+
+    if base_lim[0] <= base <= base_lim[1] \
+            and amplitude_lim[0] <= amplitude <= amplitude_lim[1] \
+            and rate_lim[0] <= rate <= rate_lim[1] \
+            and x0_lim[0] <= x0 <= x0_lim[1]:
+        return True
+
+    else:
+        return False
+
+
+def manual_region_selection(time, anis):
+
+    fig, ax = plt.subplots()
+    plt.subplots_adjust(bottom=0.2)
+    t = np.arange(0.0, 1.0, 0.001)
+    s = np.sin(2 * np.pi * freqs[0] * t)
+    l, = plt.plot(t, s, lw=2)
+
+    class Index(object):
+        ind = 0
+
+        def next(self, event):
+            self.ind += 1
+            i = self.ind % len(freqs)
+            ydata = np.sin(2 * np.pi * freqs[i] * t)
+            l.set_ydata(ydata)
+            plt.draw()
+
+        def prev(self, event):
+            self.ind -= 1
+            i = self.ind % len(freqs)
+            ydata = np.sin(2 * np.pi * freqs[i] * t)
+            l.set_ydata(ydata)
+            plt.draw()
+
+    callback = Index()
+    axprev = plt.axes([0.7, 0.05, 0.1, 0.075])
+    axnext = plt.axes([0.81, 0.05, 0.1, 0.075])
+    bnext = Button(axnext, 'Next')
+    bnext.on_clicked(callback.next)
+    bprev = Button(axprev, 'Previous')
+    bprev.on_clicked(callback.prev)
+
+    plt.show()
+
+    def onselect(eclick, erelease):
+        "eclick and erelease are matplotlib events at press and release."
+        xs = []
+        ys = []
+        xs.append(eclick.xdata)
+        ys.append(eclick.ydata)
+        xs.append(erelease.xdata)
+        ys.append(erelease.ydata)
+
+        return [np.min(xs), np.min(ys), np.max(xs), np.max(ys)]
+
+    fig, axs = plt.subplots()
+
+    axs.plot(time, anis)
+    rect = RectangleSelector(axs, onselect)
+
+    selections = []
+    def on_click(selections=selections):
+        plt.close()
+
+        selections.append(rect.extents)
+
+    button = Button(axs, 'Finish')
+    button.on_clicked(on_click)
+
+    plt.show()
+
+    return rect.extents
+

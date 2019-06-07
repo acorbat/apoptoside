@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 import filter_data as fd
 
@@ -21,3 +22,13 @@ class Apop(object):
                                                                                                  windowsize=50,
                                                                                                  windowstep=30),
                                                                        axis=1)
+
+    def add_sigmoid_mask(self):
+
+        self.df['sigmoid_mask'] = self.df.time.apply(lambda x: [np.nan] * len(x))
+
+    def filter_non_apoptotic(self):
+
+        for fluo in self.sensors.fluorophore:
+            self.df[fluo + '_apoptotic'] = self.df['_'.join([fluo, 'sigmoid_popts'])].apply(
+                lambda x: any([fd.is_apoptotic(*popt) for popt in x]))
