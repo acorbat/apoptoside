@@ -116,7 +116,7 @@ def window_fit(func, y, x=None, timepoints=10, windowsize=30, windowstep=10):
         end_ind = np.clip(end_ind, 0, end_of_series-1)
         windowed_y = y[start_ind:end_ind]
         windowed_x = x[start_ind:end_ind]
-        half_point = (end_ind - start_ind) // 2 + start_ind
+        half_point = (end_ind + start_ind) // 2
 
         chi2 = float('+inf')
         if np.sum(np.isfinite(windowed_y)) >= windowsize // 2:
