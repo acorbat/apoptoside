@@ -25,7 +25,9 @@ class Apop(object):
 
     def add_sigmoid_mask(self):
 
-        self.df['sigmoid_mask'] = self.df.time.apply(lambda x: [np.nan] * len(x))
+        self.df['sigmoid_mask'] = self.df.apply(lambda row: fd.is_apoptotic_region([np.nan] * len(row['time']),
+                                                                                   row['Cit_sigmoid_popts']),
+                                                axis=1)
 
     def filter_non_apoptotic(self):
 

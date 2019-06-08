@@ -168,6 +168,23 @@ def is_apoptotic(base, amplitude, rate, x0,
         return False
 
 
+def is_apoptotic_region(mask, popts, windowsize=50, windowstep=30):
+    start_ind = 0
+    end_ind = 0
+    end_of_series = len(mask)
+    apop_reg_ind = 0
+    while end_ind < end_of_series:
+        end_ind += windowsize
+        end_ind = np.clip(end_ind, 0, end_of_series)
+
+        mask[start_ind:end_ind] = [is_apoptotic(*popts[apop_reg_ind])] * (end_ind - start_ind)
+
+        start_ind += windowstep
+        apop_reg_ind += 1
+
+    return mask
+
+
 def manual_region_selection(time, anis):
 
     fig, ax = plt.subplots()
