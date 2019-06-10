@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 
 import filter_data as fd
+import viewer as vw
 
 
 class Apop(object):
@@ -34,3 +35,6 @@ class Apop(object):
         for fluo in self.sensors.fluorophore:
             self.df[fluo + '_apoptotic'] = self.df['_'.join([fluo, 'sigmoid_popts'])].apply(
                 lambda x: any([fd.is_apoptotic(*popt) for popt in x]))
+
+    def view(self):
+        vw.df_viewer(self.df, self.sensors)
