@@ -19,7 +19,7 @@ class Apop(object):
 
             self.df['_'.join([fluo, 'sigmoid_popts'])] = self.df.apply(lambda row: fd.window_fit(fd.sigmoid,
                                                                                                  row[anis_col],
-                                                                                                 row[xdata_column],
+                                                                                                 x=row[xdata_column],
                                                                                                  windowsize=50,
                                                                                                  windowstep=30),
                                                                        axis=1)

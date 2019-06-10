@@ -108,11 +108,12 @@ def window_fit(func, y, x=None, timepoints=10, windowsize=30, windowstep=10):
         x = x * timepoints
 
     popts = []
-    start_ind = 0
-    end_ind = 0
+    ind = 0
     end_of_series = y.shape[0]
+    end_ind = 0
     while end_ind < end_of_series-1:
-        end_ind += windowsize
+        start_ind = ind * windowstep
+        end_ind = start_ind + windowsize
         end_ind = np.clip(end_ind, 0, end_of_series-1)
         windowed_y = y[start_ind:end_ind]
         windowed_x = x[start_ind:end_ind]
@@ -137,7 +138,7 @@ def window_fit(func, y, x=None, timepoints=10, windowsize=30, windowstep=10):
         else:
             popts.append([np.nan] * 4)
 
-        start_ind += windowstep
+        ind += 1
 
     if end_ind == 0:
         popts.append([np.nan] * 4)
