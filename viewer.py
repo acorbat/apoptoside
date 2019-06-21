@@ -1,3 +1,4 @@
+import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import RectangleSelector, Button
 
@@ -24,6 +25,7 @@ def df_viewer(df, sensors):
 
             plt.legend()
             plt.sca(self.axs)
+            self.set_title(df_row)
             y_lims = self.axs.get_ylim()
             self.fill = self.axs.fill_between(time, y_lims[0], y_lims[1], where=mask, color='g', alpha=0.1)
             plt.xlabel('Time (min.)')
@@ -44,7 +46,14 @@ def df_viewer(df, sensors):
             self.axs.autoscale_view()
             y_lims = self.axs.get_ylim()
             self.fill = self.axs.fill_between(time, y_lims[0], y_lims[1], where=mask, color='g', alpha=0.1)
+            self.set_title(df_row)
             plt.draw()
+
+        def set_title(self, df_row):
+            date = df_row.date
+            drug = df_row.drug
+            plasmid = df_row.plasmid
+            self.axs.set_title('date: %s; drug: %s; plasmid: %s' % (date, drug, plasmid))
 
     subplot = SubPlot(axs[0], df.iloc[0], sensors)
 
@@ -66,7 +75,9 @@ def df_viewer(df, sensors):
 
     callback = Index()
     plt.sca(axs[1])
-    #plt.axes('off')
+
+    axs[1].axis('off')
+
     axprev = plt.axes([0.7, 0.05, 0.1, 0.075])
     axnext = plt.axes([0.81, 0.05, 0.1, 0.075])
     bnext = Button(axnext, 'Next')
@@ -105,12 +116,21 @@ def df_viewer(df, sensors):
         ind = rectangle.actual_index
         mask = rectangle.actual_mask
 
-        df.at[ind, 'sigmoid_mask'] = mask
+        df.at[ind, 'sigmoid_mask'] = np.logical_or(mask, df.at[ind, 'sigmoid_mask'])
         print('saved')
 
     axsave = plt.axes([0.59, 0.05, 0.1, 0.075])
     bsave = Button(axsave, 'Save')
     bsave.on_clicked(save_region)
+
+    def remove_region(event):
+        ind = callback.this_ind
+        df.at[ind, 'sigmoid_mask'] = np.array([False] * len(df.at[ind, 'sigmoid_mask']))
+        print('removed')
+
+    axremove = plt.axes([0.42, 0.05, 0.15, 0.075])
+    bremove = Button(axremove, 'Remove all')
+    bremove.on_clicked(remove_region)
 
     plt.show()
 
@@ -118,6 +138,12 @@ def df_viewer(df, sensors):
 def view_curves(axs, df_row, sensors, lines=None, fill=None):
     time = df_row.time
     mask = df_row.sigmoid_mask
+
+    ind = df_row.index
+    date = df_row.date
+    drug = df_row.drug
+    plasmid = df_row.plasmid
+    axs.set_title('ind: %s; date: %s; drug: %s; plasmid: %s' % (ind, date, drug, plasmid))
 
     if lines is None:
         plt.sca(axs)
