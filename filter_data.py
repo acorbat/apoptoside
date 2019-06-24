@@ -111,10 +111,10 @@ def window_fit(func, y, x=None, timepoints=10, windowsize=30, windowstep=10):
     ind = 0
     end_of_series = y.shape[0]
     end_ind = 0
-    while end_ind < end_of_series-1:
+    while end_ind < end_of_series:
         start_ind = ind * windowstep
         end_ind = start_ind + windowsize
-        end_ind = np.clip(end_ind, 0, end_of_series-1)
+        end_ind = np.clip(end_ind, 0, end_of_series)
         windowed_y = y[start_ind:end_ind]
         windowed_x = x[start_ind:end_ind]
         half_point = (end_ind + start_ind) // 2
