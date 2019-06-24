@@ -44,10 +44,10 @@ def df_viewer(df, sensors, save_dir):
                 line.set_xdata(time)
                 line.set_ydata(anis)
 
-            self.fill.remove()
-            self.axs.relim()
+            self.axs.relim(visible_only=True)
             self.axs.autoscale_view()
             y_lims = self.axs.get_ylim()
+            self.fill.remove()
             self.fill = self.axs.fill_between(time, y_lims[0], y_lims[1],
                                               where=mask, color='g', alpha=0.1)
             self.set_title(df_row)
@@ -126,7 +126,7 @@ def df_viewer(df, sensors, save_dir):
                                                                'sigmoid_mask'])
         print('added')
 
-    axadd = plt.axes([0.59, 0.05, 0.15, 0.075])
+    axadd = plt.axes([0.50, 0.05, 0.15, 0.075])
     badd = Button(axadd, 'Add Region')
     badd.on_clicked(add_region)
 
@@ -136,7 +136,7 @@ def df_viewer(df, sensors, save_dir):
                                               len(df.at[ind, 'sigmoid_mask']))
         print('removed')
 
-    axremove = plt.axes([0.42, 0.05, 0.15, 0.075])
+    axremove = plt.axes([0.30, 0.05, 0.15, 0.075])
     bremove = Button(axremove, 'Remove all')
     bremove.on_clicked(remove_region)
 
@@ -149,7 +149,7 @@ def df_viewer(df, sensors, save_dir):
 
         print('saved')
 
-    axsave = plt.axes([0.31, 0.05, 0.1, 0.075])
+    axsave = plt.axes([0.1, 0.05, 0.1, 0.075])
     bsave = Button(axsave, 'Save All')
     bsave.on_clicked(save_all)
 
