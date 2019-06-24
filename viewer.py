@@ -54,11 +54,12 @@ def df_viewer(df, sensors, save_dir):
             plt.draw()
 
         def set_title(self, df_row):
+            ind = df_row.name
             date = df_row.date
             drug = df_row.drug
             plasmid = df_row.plasmid
-            self.axs.set_title('date: %s; drug: %s; plasmid: %s' %
-                               (date, drug, plasmid))
+            self.axs.set_title('index: %s; date: %s; drug: %s; plasmid: %s' %
+                               (ind, date, drug, plasmid))
 
     subplot = SubPlot(axs[0], df.iloc[0], sensors)
 
@@ -140,18 +141,18 @@ def df_viewer(df, sensors, save_dir):
     bremove = Button(axremove, 'Remove all')
     bremove.on_clicked(remove_region)
 
-    def save_all(event):
+    def save_all(event, df_to_save):
         if save_dir is None:
             print("No save directory was specified.")
             return
 
-        df.to_pickle(str(save_dir))
+        df_to_save.to_pickle(str(save_dir))
 
         print('saved')
 
     axsave = plt.axes([0.1, 0.05, 0.1, 0.075])
     bsave = Button(axsave, 'Save All')
-    bsave.on_clicked(save_all)
+    bsave.on_clicked(lambda x, df_to_save=df: save_all(x, df_to_save))
 
     plt.show()
 
