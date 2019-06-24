@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import RectangleSelector, Button
 
 
-def df_viewer(df, sensors):
+def df_viewer(df, sensors, save_dir):
 
     fig, axs = plt.subplots(2, 1, gridspec_kw={'height_ratios': [5, 1]})
 
@@ -141,12 +141,17 @@ def df_viewer(df, sensors):
     bremove.on_clicked(remove_region)
 
     def save_all(event):
+        if save_dir is None:
+            print("No save directory was specified.")
+            return
+
+        df.to_pickle(str(save_dir))
 
         print('saved')
 
-    axremove = plt.axes([0.42, 0.05, 0.15, 0.075])
-    bremove = Button(axremove, 'Remove all')
-    bremove.on_clicked(remove_region)
+    axsave = plt.axes([0.31, 0.05, 0.1, 0.075])
+    bsave = Button(axsave, 'Save All')
+    bsave.on_clicked(save_all)
 
     plt.show()
 
