@@ -15,7 +15,8 @@ def sigmoid_der1(x, base, amplitude, rate, x0):
     """
     First derivative of sigmoid function.
     """
-    return (amplitude * rate * np.exp(-rate * (x - x0))) / ((1 + np.exp(-rate * (x - x0))) ** 2)
+    return (amplitude * rate * np.exp(-rate * (x - x0))) / \
+           ((1 + np.exp(-rate * (x - x0))) ** 2)
 
 
 def nanfit(func, ydata, xdata=None, timepoints=10, returnfit=False, p0=None):
@@ -29,8 +30,8 @@ def nanfit(func, ydata, xdata=None, timepoints=10, returnfit=False, p0=None):
     ydata : Array-like, list
         Curve to be fitted
     xdata : Array-like, list
-        x curve for the y curve. Defaults to None. If None, timepoints is used to generate
-        an equispaced vector.
+        x curve for the y curve. Defaults to None. If None, timepoints is used
+        to generate an equispaced vector.
     timepoints : float
         Time span of the y curve. Defaults to 10. Ignored if xdata is given.
     returnfit : boolean, optional
@@ -76,12 +77,14 @@ def nanfit(func, ydata, xdata=None, timepoints=10, returnfit=False, p0=None):
 
 def window_fit(func, y, x=None, timepoints=10, windowsize=30, windowstep=10):
     """
-    Performs succesive fits with func in the windowed curve y, with window size windowsize
-    and window step windowstep. Returns a list with the popts for each window.
+    Performs succesive fits with func in the windowed curve y, with window size
+     windowsizeand window step windowstep. Returns a list with the popts for
+     each window.
 
-    Take into consideration that windowsize will set a maximum for the rates that can
-    be fitted adequately. windowstep should be smaller thatn windowsize in order to avoid
-    the possibility that half a sigmoid is in one window and the other half in another.
+    Take into consideration that windowsize will set a maximum for the rates
+    that can be fitted adequately. windowstep should be smaller thatn
+    windowsize in order to avoid the possibility that half a sigmoid is in one
+    window and the other half in another.
 
     Parameters
     ----------
@@ -90,7 +93,8 @@ def window_fit(func, y, x=None, timepoints=10, windowsize=30, windowstep=10):
     y : Array-like, list
         Curve to be fitted.
     x : Array-like, list, optional
-        x curve for y data. Default is None. Makes timepoints unnecessary if given.
+        x curve for y data. Default is None. Makes timepoints unnecessary if
+        given.
     timepoints : float, optional
         Time span of the y curve. Default is 10.
     windowsize : int, optional
@@ -123,8 +127,12 @@ def window_fit(func, y, x=None, timepoints=10, windowsize=30, windowstep=10):
         if np.sum(np.isfinite(windowed_y)) >= windowsize // 2:
             for rate in (.1, .17, .1, .7, 1):
                 try:
-                    _popt, _, _, (_, res) = nanfit(func, windowed_y, xdata=windowed_x, timepoints=timepoints,
-                                                   p0=[0.2, 0.2, rate, x[half_point]], returnfit=True)
+                    _popt, _, _, (_, res) = nanfit(func, windowed_y,
+                                                   xdata=windowed_x,
+                                                   timepoints=timepoints,
+                                                   p0=[0.2, 0.2, rate,
+                                                       x[half_point]],
+                                                   returnfit=True)
                     _chi2 = np.nansum(res * res)
                     if _chi2 < chi2:
                         popt = np.copy(_popt)
@@ -147,10 +155,10 @@ def window_fit(func, y, x=None, timepoints=10, windowsize=30, windowstep=10):
 
 
 def is_apoptotic(base, amplitude, rate, x0,
-                    base_lim=(-0.1, 0.5),
-                    amplitude_lim=(0.005, 0.5),
-                    rate_lim=(0, np.inf),
-                    x0_lim=(0, np.inf)):
+                 base_lim=(-0.1, 0.5),
+                 amplitude_lim=(0.005, 0.5),
+                 rate_lim=(0, np.inf),
+                 x0_lim=(0, np.inf)):
     """
     Quick checks that parameters of sigmoid are within possible range.
 
