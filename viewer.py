@@ -20,14 +20,16 @@ def df_viewer(df, sensors):
             self.lines = []
             for _, sensor_row in sensors.iterrows():
                 anis = df_row[sensor_row.fluorophore + '_anisotropy']
-                l, = self.axs.plot(time, anis, color=sensor_row.color, label=sensor_row.fluorophore)
+                l, = self.axs.plot(time, anis, color=sensor_row.color,
+                                   label=sensor_row.fluorophore)
                 self.lines.append(l)
 
             plt.legend()
             plt.sca(self.axs)
             self.set_title(df_row)
             y_lims = self.axs.get_ylim()
-            self.fill = self.axs.fill_between(time, y_lims[0], y_lims[1], where=mask, color='g', alpha=0.1)
+            self.fill = self.axs.fill_between(time, y_lims[0], y_lims[1],
+                                              where=mask, color='g', alpha=0.1)
             plt.xlabel('Time (min.)')
             plt.ylabel('Anisotropy')
             plt.draw()
@@ -36,7 +38,8 @@ def df_viewer(df, sensors):
             plt.sca(self.axs)
             time = df_row.time
             mask = df_row.sigmoid_mask
-            for line, (_, sensor_row) in zip(self.lines, self.sensors.iterrows()):
+            for line, (_, sensor_row) in zip(self.lines,
+                                             self.sensors.iterrows()):
                 anis = df_row[sensor_row.fluorophore + '_anisotropy']
                 line.set_xdata(time)
                 line.set_ydata(anis)
@@ -45,7 +48,8 @@ def df_viewer(df, sensors):
             self.axs.relim()
             self.axs.autoscale_view()
             y_lims = self.axs.get_ylim()
-            self.fill = self.axs.fill_between(time, y_lims[0], y_lims[1], where=mask, color='g', alpha=0.1)
+            self.fill = self.axs.fill_between(time, y_lims[0], y_lims[1],
+                                              where=mask, color='g', alpha=0.1)
             self.set_title(df_row)
             plt.draw()
 
@@ -53,7 +57,8 @@ def df_viewer(df, sensors):
             date = df_row.date
             drug = df_row.drug
             plasmid = df_row.plasmid
-            self.axs.set_title('date: %s; drug: %s; plasmid: %s' % (date, drug, plasmid))
+            self.axs.set_title('date: %s; drug: %s; plasmid: %s' %
+                               (date, drug, plasmid))
 
     subplot = SubPlot(axs[0], df.iloc[0], sensors)
 
@@ -99,7 +104,8 @@ def df_viewer(df, sensors):
 
             times = df.loc[self.actual_index].time
 
-            mask = [True if t_ini <= time <= t_end else False for time in times]
+            mask = [True if t_ini <= time <= t_end else
+                    False for time in times]
 
             return mask
 
@@ -112,21 +118,31 @@ def df_viewer(df, sensors):
     rect = RectangleSelector(axs[0], rectangle.load)
     rectangle.rectangle = rect
 
-    def save_region(event):
+    def add_region(event):
         ind = rectangle.actual_index
         mask = rectangle.actual_mask
 
-        df.at[ind, 'sigmoid_mask'] = np.logical_or(mask, df.at[ind, 'sigmoid_mask'])
-        print('saved')
+        df.at[ind, 'sigmoid_mask'] = np.logical_or(mask, df.at[ind,
+                                                               'sigmoid_mask'])
+        print('added')
 
-    axsave = plt.axes([0.59, 0.05, 0.1, 0.075])
-    bsave = Button(axsave, 'Save')
-    bsave.on_clicked(save_region)
+    axadd = plt.axes([0.59, 0.05, 0.1, 0.075])
+    badd = Button(axadd, 'Add Region')
+    badd.on_clicked(add_region)
 
     def remove_region(event):
         ind = callback.this_ind
-        df.at[ind, 'sigmoid_mask'] = np.array([False] * len(df.at[ind, 'sigmoid_mask']))
+        df.at[ind, 'sigmoid_mask'] = np.array([False] *
+                                              len(df.at[ind, 'sigmoid_mask']))
         print('removed')
+
+    axremove = plt.axes([0.42, 0.05, 0.15, 0.075])
+    bremove = Button(axremove, 'Remove all')
+    bremove.on_clicked(remove_region)
+
+    def save_all(event):
+
+        print('saved')
 
     axremove = plt.axes([0.42, 0.05, 0.15, 0.075])
     bremove = Button(axremove, 'Remove all')
@@ -143,7 +159,8 @@ def view_curves(axs, df_row, sensors, lines=None, fill=None):
     date = df_row.date
     drug = df_row.drug
     plasmid = df_row.plasmid
-    axs.set_title('ind: %s; date: %s; drug: %s; plasmid: %s' % (ind, date, drug, plasmid))
+    axs.set_title('ind: %s; date: %s; drug: %s; plasmid: %s' %
+                  (ind, date, drug, plasmid))
 
     if lines is None:
         plt.sca(axs)
@@ -151,13 +168,15 @@ def view_curves(axs, df_row, sensors, lines=None, fill=None):
         lines = []
         for _, sensor_row in sensors.iterrows():
             anis = df_row[sensor_row.fluorophore + '_anisotropy']
-            l, = axs.plot(time, anis, color=sensor_row.color, label=sensor_row.fluorophore)
+            l, = axs.plot(time, anis, color=sensor_row.color,
+                          label=sensor_row.fluorophore)
             lines.append(l)
 
         plt.legend()
         plt.sca(axs)
         y_lims = axs.get_ylim()
-        fill = axs.fill_between(time, y_lims[0], y_lims[1], where=mask, color='g', alpha=0.1)
+        fill = axs.fill_between(time, y_lims[0], y_lims[1], where=mask,
+                                color='g', alpha=0.1)
         plt.xlabel('Time (min.)')
         plt.ylabel('Anisotropy')
         plt.draw()
@@ -172,7 +191,8 @@ def view_curves(axs, df_row, sensors, lines=None, fill=None):
 
         fill.remove()
         y_lims = axs.get_ylim()
-        fill = axs.fill_between(time, y_lims[0], y_lims[1], where=mask, color='g', alpha=0.1)
+        fill = axs.fill_between(time, y_lims[0], y_lims[1], where=mask,
+                                color='g', alpha=0.1)
         plt.draw()
 
         return lines, fill
