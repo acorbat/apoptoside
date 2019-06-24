@@ -40,5 +40,18 @@ class Apop(object):
                 [fluo, 'sigmoid_popts'])].apply(
                 lambda x: any([fd.is_apoptotic(*popt) for popt in x]))
 
-    def view(self):
-        vw.df_viewer(self.df, self.sensors, self.save_dir)
+    def view(self, skip_non_apoptotic=False):
+        if skip_non_apoptotic:
+            apoptotic_columns = [fluo + '_apoptotic'
+                                 for fluo in self.sensors.fluorophore]
+            if not all([col in self.df.columns for col in apoptotic_columns]):
+                print('filter_non_apoptotic method has not been run on '
+                      'DataFrame.')
+                return
+
+            condition = ' and '.join([fluo + '_apoptotic'
+                                      for fluo in self.sensors.fluorophore])
+            vw.df_viewer(self.df.query(condition), self.sensors, self.save_dir)
+
+        else:
+            vw.df_viewer(self.df, self.sensors, self.save_dir)

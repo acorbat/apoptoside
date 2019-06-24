@@ -126,7 +126,7 @@ def df_viewer(df, sensors, save_dir):
                                                                'sigmoid_mask'])
         print('added')
 
-    axadd = plt.axes([0.59, 0.05, 0.1, 0.075])
+    axadd = plt.axes([0.59, 0.05, 0.15, 0.075])
     badd = Button(axadd, 'Add Region')
     badd.on_clicked(add_region)
 
