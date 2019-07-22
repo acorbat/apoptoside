@@ -55,3 +55,9 @@ class Apop(object):
 
         else:
             vw.df_viewer(self.df, self.sensors, self.save_dir)
+
+    def add_is_apoptotic(self):
+        self.df['is_apoptotic'] = self.df.sigmoid_mask.apply(lambda x: any(x))
+
+    def estimate_pre_and_pos(self, col):
+        
