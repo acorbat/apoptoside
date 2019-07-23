@@ -4,6 +4,7 @@ import numpy as np
 import filter_data as fd
 import viewer as vw
 import transformation as tf
+import anisotropy_functions as af
 
 
 class Apop(object):
@@ -17,9 +18,9 @@ class Apop(object):
     def add_window_fit(self, xdata_column='time', ydata_column='anisotropy'):
 
         for fluo in self.sensors.fluorophore:
-            anis_col = '_'.join([fluo, ydata_column])
+            anis_col = name_col(fluo, ydata_column)
 
-            self.df['_'.join([fluo, 'sigmoid_popts'])] = self.df.apply(
+            self.df[name_col(fluo, 'sigmoid_popts')] = self.df.apply(
                 lambda row: fd.window_fit(fd.sigmoid,
                                           row[anis_col],
                                           x=row[xdata_column],
@@ -37,8 +38,8 @@ class Apop(object):
     def filter_non_apoptotic(self):
 
         for fluo in self.sensors.fluorophore:
-            self.df[fluo + '_apoptotic'] = self.df['_'.join(
-                [fluo, 'sigmoid_popts'])].apply(
+            self.df[fluo + '_apoptotic'] = self.df[
+                name_col(fluo, 'sigmoid_popts')].apply(
                 lambda x: any([fd.is_apoptotic(*popt) for popt in x]))
 
     def view(self, skip_non_apoptotic=False):
@@ -64,6 +65,24 @@ class Apop(object):
         moments = ['pre', 'pos']
 
         for moment in moments:
-            self.df['_'.join([col, moment])] = self.df.apply(
-                lambda x: tf.get_region(moment, x[col], x['sigmoid_mask'],
-                                        length=length), axis=1)
+            self.df[name_col(col, moment)] = self.df.apply(
+                lambda x: np.nanmean(tf.get_region(
+                    moment, x[col], x['sigmoid_mask'], length=length)),
+                axis=1)
+
+    def add_pre_pos_intensity(self, estimator='mean'):
+        for fluo in self.sensors.fluorophore:
+            for orientation in ['parallel', 'perpendicular']:
+                self.estimate_pre_and_pos(name_col(fluo, orientation, estimator))
+
+    def add_fluo_int(self, col_end):
+        for fluo in self.sensors.fluorophore:
+            self.df[name_col(fluo, 'fluo', col_end)] = self.df.apply(
+                lambda x: af.Fluos_FromInt(
+                    x[name_col(fluo, 'parallel', col_end)],
+                    x[name_col(fluo, 'perpendicular', col_end)]),
+                axis=1)
+
+
+def name_col(*args):
+    return '_'.join(list(args))
