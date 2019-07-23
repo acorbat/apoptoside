@@ -64,10 +64,16 @@ def df_viewer(df, sensors, save_dir):
     subplot = SubPlot(axs[0], df.iloc[0], sensors)
 
     class Index(object):
-        index = df.index
-        cur_ind = 0
-        max_ind = len(df.index)
-        this_ind = df.index[cur_ind]
+
+        def __init__(self, df):
+            self.df = df
+            self.cur_ind = 0
+            self.max_ind = len(self.df.index)
+            self.this_ind = self.df.index[self.cur_ind]
+
+            self.rectangle = []
+            self.extents = []
+            self.actual_mask = []
 
         def next(self, event):
             self.cur_ind = min(self.cur_ind + 1, self.max_ind)
@@ -79,7 +85,45 @@ def df_viewer(df, sensors, save_dir):
             self.this_ind = df.index[self.cur_ind]
             subplot.update(df.loc[self.this_ind])
 
-    callback = Index()
+        def get_mask(self):
+            t_ini = self.extents[0]
+            t_end = self.extents[1]
+
+            times = df.loc[self.this_ind].time
+
+            mask = [True if t_ini <= time <= t_end else
+                    False for time in times]
+
+            return mask
+
+        def load(self, event_press, event_release):
+            self.extents = self.rectangle.extents
+            self.actual_mask = self.get_mask()
+
+        def add_region(self, event):
+            ind = self.this_ind
+            mask = self.actual_mask
+
+            df.at[ind, 'sigmoid_mask'] = np.logical_or(mask,
+                                                       self.df.at[ind, 'sigmoid_mask'])
+            print('added')
+
+        def remove_region(self, event):
+            ind = self.this_ind
+            self.df.at[ind, 'sigmoid_mask'] = np.array([False] *
+                                                       len(self.df.at[ind, 'sigmoid_mask']))
+            print('removed')
+
+        def save_all(self, event):
+            if save_dir is None:
+                print("No save directory was specified.")
+                return
+
+            self.df.to_pickle(str(save_dir))
+
+            print('saved')
+
+    callback = Index(df)
     plt.sca(axs[1])
 
     axs[1].axis('off')
@@ -91,68 +135,20 @@ def df_viewer(df, sensors, save_dir):
     bprev = Button(axprev, 'Previous')
     bprev.on_clicked(callback.prev)
 
-    class RectangleData(object):
-        def __init__(self, indexer):
-            self.indexer = indexer
-            self.rectangle = []
-            self.actual_index = indexer.this_ind
-            self.extents = []
-            self.actual_mask = []
-
-        def get_mask(self):
-            t_ini = self.extents[0]
-            t_end = self.extents[1]
-
-            times = df.loc[self.actual_index].time
-
-            mask = [True if t_ini <= time <= t_end else
-                    False for time in times]
-
-            return mask
-
-        def load(self, event_press, event_release):
-            self.extents = self.rectangle.extents
-            self.actual_index = self.indexer.this_ind
-            self.actual_mask = self.get_mask()
-
-    rectangle = RectangleData(callback)
-    rect = RectangleSelector(axs[0], rectangle.load)
-    rectangle.rectangle = rect
-
-    def add_region(event):
-        ind = rectangle.actual_index
-        mask = rectangle.actual_mask
-
-        df.at[ind, 'sigmoid_mask'] = np.logical_or(mask, df.at[ind,
-                                                               'sigmoid_mask'])
-        print('added')
+    rect = RectangleSelector(axs[0], callback.load)
+    callback.rectangle = rect
 
     axadd = plt.axes([0.50, 0.05, 0.15, 0.075])
     badd = Button(axadd, 'Add Region')
-    badd.on_clicked(add_region)
-
-    def remove_region(event):
-        ind = callback.this_ind
-        df.at[ind, 'sigmoid_mask'] = np.array([False] *
-                                              len(df.at[ind, 'sigmoid_mask']))
-        print('removed')
+    badd.on_clicked(callback.add_region)
 
     axremove = plt.axes([0.30, 0.05, 0.15, 0.075])
     bremove = Button(axremove, 'Remove all')
-    bremove.on_clicked(remove_region)
-
-    def save_all(event, df_to_save):
-        if save_dir is None:
-            print("No save directory was specified.")
-            return
-
-        df_to_save.to_pickle(str(save_dir))
-
-        print('saved')
+    bremove.on_clicked(callback.remove_region)
 
     axsave = plt.axes([0.1, 0.05, 0.1, 0.075])
     bsave = Button(axsave, 'Save All')
-    bsave.on_clicked(lambda x, df_to_save=df: save_all(x, df_to_save))
+    bsave.on_clicked(callback.save_all)
 
     plt.show()
 
