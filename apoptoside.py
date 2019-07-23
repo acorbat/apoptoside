@@ -3,6 +3,7 @@ import numpy as np
 
 import filter_data as fd
 import viewer as vw
+import transformation as tf
 
 
 class Apop(object):
@@ -59,5 +60,10 @@ class Apop(object):
     def add_is_apoptotic(self):
         self.df['is_apoptotic'] = self.df.sigmoid_mask.apply(lambda x: any(x))
 
-    def estimate_pre_and_pos(self, col):
-        
+    def estimate_pre_and_pos(self, col, length=5):
+        moments = ['pre', 'pos']
+
+        for moment in moments:
+            self.df['_'.join([col, moment])] = self.df.apply(
+                lambda x: tf.get_region(moment, x[col], x['sigmoid_mask'],
+                                        length=length), axis=1)

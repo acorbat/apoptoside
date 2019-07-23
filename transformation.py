@@ -14,16 +14,19 @@ def get_region(region, curve, mask, length=5):
     mask : list, np.array
         Mask of the region of interest of the curve
     length : int, optional (default=5)
-        length of the region of interest to be returned
+        length of the region of interest to be returned. Should be odd.
 
     Returns
     -------
     array of curve around the region of interest
     """
+    if not any(mask):
+        return [np.nan] * length
+
     inds = np.where(mask)[0]
 
     if (np.diff(inds) != 1).any():
-        return None
+        return [np.nan] * length
 
     if region not in ['pre', 'pos']:
         raise ValueError('Only pre or pos region.')
