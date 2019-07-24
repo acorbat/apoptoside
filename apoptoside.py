@@ -83,6 +83,14 @@ class Apop(object):
                     x[name_col(fluo, 'perpendicular', col_end)]),
                 axis=1)
 
+    def add_delta_b(self, estimator='mean'):
+        for fluo in self.sensors.fluorophore:
+            self.df[name_col(fluo, 'b')] = self.df.apply(
+                lambda x: tf.estimate_delta_b(
+                    x[name_col(fluo, 'fluo', estimator, 'pre')],
+                    x[name_col(fluo, 'fluo', estimator, 'pos')]),
+                axis=1)
+
 
 def name_col(*args):
     return '_'.join(list(args))

@@ -36,3 +36,7 @@ def get_region(region, curve, mask, length=5):
     end_ini = np.clip(center + length // 2, 0, len(curve))
 
     return curve[start_ini:end_ini + 1]
+
+
+def estimate_delta_b(fluo_pre, fluo_pos):
+    return fluo_pre/fluo_pos - 1
