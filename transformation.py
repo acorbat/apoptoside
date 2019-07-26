@@ -39,4 +39,6 @@ def get_region(region, curve, mask, length=5):
 
 
 def estimate_delta_b(fluo_pre, fluo_pos):
+    """Estimates delta b parameter from the pre and pos cleavage fluorescence
+    """
     return fluo_pre/fluo_pos - 1
