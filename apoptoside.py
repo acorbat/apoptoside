@@ -91,6 +91,43 @@ class Apop(object):
                     x[name_col(fluo, 'fluo', estimator, 'pos')]),
                 axis=1)
 
+    def add_activities(self):
+        for fluo in self.sensors.fluorophore:
+            self.df[name_col(fluo, 'activity')] = self.df.apply(
+                lambda x: self._calculate_activity(
+                    x['time'],
+                    x[name_col(fluo, 'anisotropy')],
+                    x['sigmoid_mask'],
+                    x[name_col(fluo, 'b')]
+                ),
+                axis=1
+            )
+
+    def _mask(self, curve, mask):
+        """Returns a masked array or nans if there is no True  in mask, or mask
+         is discontinous"""
+        if not any(mask):
+            return [np.nan] * len(curve)
+
+        inds = np.where(mask)[0]
+
+        if (np.diff(inds) != 1).any():
+            return np.asarray([np.nan] * len(curve))
+
+        return curve[mask]
+
+    def _calculate_activity(self, time, anisotropy, mask, delta_b):
+        """Masks the anisotropy curve and calculates the corresponding
+        enzimatic activity"""
+        time = self._mask(time, mask)
+        anisotropy = self._mask(anisotropy, mask)
+
+        if not any(np.isfinite(time)):
+            return time, anisotropy
+
+        return tf.calculate_activity(time, anisotropy, delta_b)
+
 
 def name_col(*args):
+    """Joins strings with underscore to create a column name"""
     return '_'.join(list(args))

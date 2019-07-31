@@ -54,9 +54,9 @@ def calculate_activity(time, anisotropy, delta_b, order=5):
         time, anisotropy = fill_in_curves(time, anisotropy)
 
     def this_vect(t):
-        ind = t // time_step
-        ind = np.clip(ind, 0, len(anisotropy) - 1)
-        return anisotropy[ind]
+        inds = np.searchsorted(time, t)
+        inds = np.clip(inds, 0, len(anisotropy) - 1)
+        return anisotropy[inds]
 
     der = derivative(this_vect, time, dx=time_step, order=order)
 
