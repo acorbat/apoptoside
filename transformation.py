@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.misc import derivative
+from scipy.interpolate import splrep, splev
 
 
 def get_region(region, curve, mask, length=5):
@@ -80,9 +81,15 @@ def fill_in_curves(time, curve):
 
 def normalize(vect):
     """
-    Returns a normalization of vect from 0 to 1.
+    Returns a normalization of vect from 0 to 1
     """
     this_vect = vect[:]
     this_vect -= np.nanmin(this_vect)
     this_vect /= np.nanmax(this_vect)
     return this_vect
+
+
+def interpolate(new_time, time, curve):
+    """Interpolate curve using new_time as xdata"""
+    f = splrep(time, curve, k=3)
+    return splev(new_time, f, der=0)
