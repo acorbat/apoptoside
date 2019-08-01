@@ -51,7 +51,7 @@ def calculate_activity(time, anisotropy, delta_b, order=5):
     time_steps = np.diff(time)
     time_step = np.nanmin(time_steps)
     if not all(time_steps == time_step):
-        time, anisotropy = fill_in_curves(time, anisotropy)
+        time, anisotropy = fill_in_curves(time, anisotropy, smooth=True)
 
     def this_vect(t):
         inds = np.searchsorted(time, t)
@@ -66,15 +66,18 @@ def calculate_activity(time, anisotropy, delta_b, order=5):
     return time, activity
 
 
-def fill_in_curves(time, curve):
+def fill_in_curves(time, curve, smooth=False):
     """Fill in the missing values with interpolation to get equispaced curve"""
     start = np.nanmin(time)
     end = np.nanmax(time)
     time_step = np.nanmin(np.diff(time))
     complete_time = np.arange(start, end, time_step)
 
-    complete_curve = np.interp(complete_time, time, curve,
-                               left=curve[0], right=curve[0])
+    if not smooth:
+        complete_curve = np.interp(complete_time, time, curve,
+                                   left=curve[0], right=curve[0])
+    else:
+        complete_curve = interpolate(complete_time, time, curve)
 
     return complete_time, complete_curve
 
