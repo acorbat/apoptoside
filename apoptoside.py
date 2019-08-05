@@ -8,6 +8,43 @@ import anisotropy_functions as af
 
 
 class Apop(object):
+    """Apop class is the scaffold containing and organizing the experimental
+    dataframe.
+
+    Attributes
+    ----------
+    df : pandas.DataFrame
+        pandas DataFrame containing all the data from the experiments and
+        analysis performed
+    sensors : pandas.DataFrame
+        pandas DataFrame containing the information regarding the sensors
+        present in the experiment
+    save_dir : pathlib.Path
+        Path object where the modified DataFrame should be saved
+
+    Methods
+    -------
+    add_window_fit : Performs windowed fit over the rows of each fluorophore
+        in the DataFrame and adds a column with the parameters for each window.
+    add_sigmoid_mask : Adds column with the automatic sigmoid mask for each
+        section according to the parameters from the window fit.
+    filter_non_apoptotic : Adds a columnof bools specifying whther the row has
+        any apoptotic region
+    view : Calls the viewer to manually curate the data and select the
+        apoptotic regions.
+    add_is_apoptotic : Adds a column of bools showing whether there is an
+        apoptotic region in the curve.
+    estimate_pre_and_pos : Adds a column with the pre and post estimates of col
+        using the sigmoid_mask column.
+    add_pre_pos_intensity : Adds the pre and pos intensity estimation for each
+        fluorophore for parallel and perpendicular intensities.
+    add_fluo_int : Adds a column for the total fluorescence intensity from the
+        columns ending in col_end, starting with fluo and having orientation in
+        the middle.
+    add_delta_b : Adds an estimation of delta b parameter column.
+    add_activities : Adds the activity column for each fluorophore using the
+        found b parameter for each row.
+    """
 
     def __init__(self, data_path, save_dir=None):
 
@@ -16,6 +53,16 @@ class Apop(object):
         self.save_dir = save_dir
 
     def add_window_fit(self, xdata_column='time', ydata_column='anisotropy'):
+        """Performs windowed fit over the rows of each fluorophore in the
+        DataFrame and adds a column with the parameters for each window.
+
+        Parameters
+        ----------
+        xdata_column : string
+            Name of the xdata column
+        ydata_column : string
+            Name of the ydata column
+        """
 
         for fluo in self.sensors.fluorophore:
             anis_col = name_col(fluo, ydata_column)
@@ -29,20 +76,31 @@ class Apop(object):
                 axis=1)
 
     def add_sigmoid_mask(self):
-
+        """Adds column with the automatic sigmoid mask for each section
+        according to the parameters from the window fit."""
+        # TODO: This is not general enough
         self.df['sigmoid_mask'] = self.df.apply(
             lambda row: fd.is_apoptotic_region([np.nan] * len(row['time']),
                                                row['Cit_sigmoid_popts']),
             axis=1)
 
     def filter_non_apoptotic(self):
-
+        """Adds a columnof bools specifying whther the row has any apoptotic
+        region"""
         for fluo in self.sensors.fluorophore:
             self.df[fluo + '_apoptotic'] = self.df[
                 name_col(fluo, 'sigmoid_popts')].apply(
                 lambda x: any([fd.is_apoptotic(*popt) for popt in x]))
 
     def view(self, skip_non_apoptotic=False):
+        """Calls the viewer to manually curate the data and select the
+        apoptotic regions.
+
+        Parameters
+        ----------
+        skip_non_apoptotic : Bool (optional, default=False)
+            if True, only curves with apoptotic regions are shown.
+        """
         if skip_non_apoptotic:
             apoptotic_columns = [fluo + '_apoptotic'
                                  for fluo in self.sensors.fluorophore]
@@ -59,9 +117,21 @@ class Apop(object):
             vw.df_viewer(self.df, self.sensors, self.save_dir)
 
     def add_is_apoptotic(self):
+        """Adds a column of bools showing whether there is an apoptotic region
+        in the curve."""
         self.df['is_apoptotic'] = self.df.sigmoid_mask.apply(lambda x: any(x))
 
     def estimate_pre_and_pos(self, col, length=5):
+        """Adds a column with the pre and post estimates of col using the
+        sigmoid_mask column.
+
+        Parameters
+        ----------
+        col : string
+            Name of the column to get the values for the estimation
+        length : int (optional, default=5)
+            Number of points to use for the estimation. Should be odd.
+        """
         moments = ['pre', 'pos']
 
         for moment in moments:
@@ -71,11 +141,28 @@ class Apop(object):
                 axis=1)
 
     def add_pre_pos_intensity(self, estimator='mean'):
+        """Adds the pre and pos intensity estimation for each fluorophore for
+         parallel and perpendicular intensities.
+
+        Parameters
+        ----------
+        estimator : string (optional, default='mean')
+            Which statistical estimator to use
+        """
         for fluo in self.sensors.fluorophore:
             for orientation in ['parallel', 'perpendicular']:
                 self.estimate_pre_and_pos(name_col(fluo, orientation, estimator))
 
     def add_fluo_int(self, col_end):
+        """Adds a column for the total fluorescence intensity from the columns
+        ending in col_end, starting with fluo and having orientation in the
+        middle.
+
+        Parameters
+        ----------
+        col_end : string
+            ending of the column name to use
+        """
         for fluo in self.sensors.fluorophore:
             self.df[name_col(fluo, 'fluo', col_end)] = self.df.apply(
                 lambda x: af.Fluos_FromInt(
@@ -84,6 +171,13 @@ class Apop(object):
                 axis=1)
 
     def add_delta_b(self, estimator='mean'):
+        """Adds an estimation of delta b parameter column.
+
+        Parameters
+        ----------
+        estimator : string
+            Which statistic estimator to use
+        """
         for fluo in self.sensors.fluorophore:
             self.df[name_col(fluo, 'b')] = self.df.apply(
                 lambda x: tf.estimate_delta_b(
@@ -92,6 +186,8 @@ class Apop(object):
                 axis=1)
 
     def add_activities(self):
+        """Adds the activity column for each fluorophore using the found b
+        parameter for each row."""
         for fluo in self.sensors.fluorophore:
             self.df[name_col(fluo, 'activity')] = self.df.apply(
                 lambda x: self._calculate_activity(
