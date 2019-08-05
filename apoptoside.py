@@ -44,6 +44,8 @@ class Apop(object):
     add_delta_b : Adds an estimation of delta b parameter column.
     add_activities : Adds the activity column for each fluorophore using the
         found b parameter for each row.
+    add_times : Generate a new time vector with another time_step.
+    add_interpolation : Add an interpolation column.
     """
 
     def __init__(self, data_path, save_dir=None):
@@ -198,6 +200,46 @@ class Apop(object):
                 ),
                 axis=1
             )
+
+    def add_interpolation(self, new_time_col, time_col, curve_col):
+        """Add an interpolation column.
+
+        Parameters
+        ----------
+        new_time_col : string
+            name of the column with the new time vector to use
+        time_col : string
+            name of the column with the old time vector
+        curve_col : string
+            name of the column with the old data to be interpolated
+        """
+        for fluo in self.sensors.fluorophore:
+            self.df[name_col(fluo, curve_col, 'interpolate')] = self.df.apply(
+                lambda x: tf.interpolate(
+                    x[new_time_col],
+                    x[time_col],
+                    x[curve_col]
+                ),
+                axis=1
+            )
+
+    def add_times(self, time_col, time_step):
+        """Generate a new time vector with another time_step."""
+        self.df[name_col('new', time_col)] = self.df.apply(
+            lambda x: self._generate_time_vector(
+                x[time_col],
+                time_step
+            ),
+            axis=1
+        )
+
+
+    def _generate_time_vector(self, time, time_step):
+        """Generates a new time vector with same start as time, until almost
+        end with time_step separation."""
+        start = np.nanmin(time)
+        end = np.nanmax(time)
+        return np.arange(start, end, time_step)
 
     def _mask(self, curve, mask):
         """Returns a masked array or nans if there is no True  in mask, or mask
