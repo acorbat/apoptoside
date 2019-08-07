@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 
+from itertools import combinations
+
 import filter_data as fd
 import viewer as vw
 import transformation as tf
@@ -191,7 +193,7 @@ class Apop(object):
         """Adds the activity column for each fluorophore using the found b
         parameter for each row."""
         for fluo in self.sensors.fluorophore:
-            self.df[name_col(fluo, 'activity')] = self.df.apply(
+            self.df[name_col(fluo, 'time_activity')], self.df[name_col(fluo, 'activity')] = zip(*self.df.apply(
                 lambda x: self._calculate_activity(
                     x['time'],
                     x[name_col(fluo, 'anisotropy')],
@@ -199,7 +201,7 @@ class Apop(object):
                     x[name_col(fluo, 'b')]
                 ),
                 axis=1
-            )
+            ))
 
     def add_interpolation(self, new_time_col, time_col, curve_col):
         """Add an interpolation column.
@@ -233,6 +235,13 @@ class Apop(object):
             axis=1
         )
 
+    def add_max_times(self):
+        pass
+
+    def add_time_differences(self):
+        for fluo1, fluo2 in combinations(self.sensors.fluorophore.values):
+            pass
+
 
     def _generate_time_vector(self, time, time_step):
         """Generates a new time vector with same start as time, until almost
@@ -261,7 +270,7 @@ class Apop(object):
         anisotropy = self._mask(anisotropy, mask)
 
         if not any(np.isfinite(time)):
-            return time, anisotropy
+            return np.asarray(time), np.asarray(anisotropy)
 
         return tf.calculate_activity(time, anisotropy, delta_b)
 

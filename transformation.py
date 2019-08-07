@@ -63,7 +63,7 @@ def calculate_activity(time, anisotropy, delta_b, order=5):
     anisotropy_normalized = normalize(anisotropy)
     activity = der / ((1 + delta_b * anisotropy_normalized) ** 2)
 
-    return time, activity
+    return np.asarray(time), np.asarray(activity)
 
 
 def fill_in_curves(time, curve, smooth=False):
