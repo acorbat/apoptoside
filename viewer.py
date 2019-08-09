@@ -198,3 +198,17 @@ def view_curves(axs, df_row, sensors, lines=None, fill=None):
         plt.draw()
 
         return lines, fill
+
+def plot_delta_b_histogram(df, sensors):
+    """Plots an histogram for the delta b in the df. Must have a 'b' column"""
+    for _, sensor_row in sensors.iterrows():
+        fluo = sensor_row.fluorophore
+        color = sensor_row.color
+        b_values = df[fluo + '_b'].values
+        b_values = b_values[np.isfinite(b_values)]
+
+        plt.hist(b_values, bins=50, edgecolor='k',
+                 color=color, alpha=0.6, label=fluo)
+    plt.xlabel('$\Delta$b')
+    plt.ylabel('Frequency')
+    plt.legend()
