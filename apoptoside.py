@@ -244,8 +244,11 @@ class Apop(object):
             )
 
     def add_time_differences(self):
-        for fluo1, fluo2 in combinations(self.sensors.fluorophore.values):
-            pass
+        for fluo1, fluo2 in combinations(self.sensors.fluorophore.values, 2):
+            self.df[name_col(fluo2, 'to', fluo1)] = self.df.apply(
+                lambda x: x[name_col(fluo2, 'max_time')] - x[name_col(fluo1, 'max_time')],
+                axis=1
+            )
 
 
     def _generate_time_vector(self, time, time_step):
