@@ -218,7 +218,7 @@ def plot_delta_b_histogram(df, sensors):
     plt.legend()
 
 
-def plot_histogram_2d(df, sensors):
+def plot_histogram_2d(df, sensors, kind='histogram_2d'):
     """Generates a 2D histogram of the given DataFrame and sensor dictionary."""
     x_data_col = "BFP_to_Cit"
     y_data_col = "BFP_to_Kate"
@@ -231,8 +231,15 @@ def plot_histogram_2d(df, sensors):
     sns.distplot(df_fil[x_data_col], kde=False, bins=30, ax=g.ax_marg_x)
     sns.distplot(df_fil[y_data_col], kde=False, bins=30, ax=g.ax_marg_y,
                  vertical=True)
-    g.ax_joint.hexbin(df_fil[x_data_col], df_fil[y_data_col], gridsize=30,
-                      mincnt=1, cmap='Greys')
+    if kind == 'histogram_2d':
+        g.ax_joint.hexbin(df_fil[x_data_col], df_fil[y_data_col], gridsize=30,
+                          mincnt=1, cmap='Greys')
+    elif kind == 'scatter':
+        g.ax_joint.scatter(df_fil[x_data_col], df_fil[y_data_col])
+    else:
+        raise ValueError('%s is not a permitted kind. Only "histogram_2d" or '
+                         '"scatter" allowed')
+
     g.ax_joint.axhline(y=0, ls='--', color='k', alpha=0.3)
     g.ax_joint.axvline(x=0, ls='--', color='k', alpha=0.3)
 
@@ -244,5 +251,9 @@ def make_report(pdf_dir, df, sensors):
         plt.close()
 
         plot_histogram_2d(df, sensors)
+        pp.savefig()
+        plt.close()
+
+        plot_histogram_2d(df, sensors, kind='scatter')
         pp.savefig()
         plt.close()
