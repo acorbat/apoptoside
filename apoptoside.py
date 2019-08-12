@@ -125,6 +125,10 @@ class Apop(object):
         in the curve."""
         self.df['is_apoptotic'] = self.df.sigmoid_mask.apply(lambda x: any(x))
 
+        self.df['is_single_apoptotic'] = self.df.sigmoid_mask.apply(
+            lambda x: self._single_apoptotic(x.sigmoid_mask)
+        )
+
     def estimate_pre_and_pos(self, col, length=5):
         """Adds a column with the pre and post estimates of col using the
         sigmoid_mask column.
@@ -257,6 +261,17 @@ class Apop(object):
                     axis=1
                 )
 
+    def _single_apoptotic(self, mask):
+        """Determines whether a curve has a single apoptotic region"""
+        if not any(mask):
+            return False
+
+        inds = np.where(mask)[0]
+
+        if (np.diff(inds) != 1).any():
+            return False
+
+        return True
 
     def _generate_time_vector(self, time, time_step):
         """Generates a new time vector with same start as time, until almost
