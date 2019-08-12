@@ -1,6 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy import stats
+
 from matplotlib.widgets import RectangleSelector, Button
+from matplotlib.backends.backend_pdf import PdfPages
 
 
 def df_viewer(df, sensors, save_dir):
@@ -198,3 +202,58 @@ def view_curves(axs, df_row, sensors, lines=None, fill=None):
         plt.draw()
 
         return lines, fill
+
+def plot_delta_b_histogram(df, sensors):
+    """Plots an histogram for the delta b in the df. Must have a 'b' column"""
+    for _, sensor_row in sensors.iterrows():
+        fluo = sensor_row.fluorophore
+        color = sensor_row.color
+        b_values = df[fluo + '_b'].values
+        b_values = b_values[np.isfinite(b_values)]
+
+        plt.hist(b_values, bins=50, edgecolor='k',
+                 color=color, alpha=0.6, label=fluo)
+    plt.xlabel('$\Delta$b')
+    plt.ylabel('Frequency')
+    plt.legend()
+
+
+def plot_histogram_2d(df, sensors, kind='histogram_2d'):
+    """Generates a 2D histogram of the given DataFrame and sensor dictionary."""
+    x_data_col = "BFP_to_Cit"
+    y_data_col = "BFP_to_Kate"
+
+    df_fil = df.query('is_single_apoptotic')
+    df_fil = df_fil[[x_data_col, y_data_col]]
+    df_fil = df_fil[(np.abs(stats.zscore(df_fil)) < 3).all(axis=1)]
+    g = sns.JointGrid(x_data_col, y_data_col, df_fil, height=6.6)
+
+    sns.distplot(df_fil[x_data_col], kde=False, bins=30, ax=g.ax_marg_x)
+    sns.distplot(df_fil[y_data_col], kde=False, bins=30, ax=g.ax_marg_y,
+                 vertical=True)
+    if kind == 'histogram_2d':
+        g.ax_joint.hexbin(df_fil[x_data_col], df_fil[y_data_col], gridsize=30,
+                          mincnt=1, cmap='Greys')
+    elif kind == 'scatter':
+        g.ax_joint.scatter(df_fil[x_data_col], df_fil[y_data_col])
+    else:
+        raise ValueError('%s is not a permitted kind. Only "histogram_2d" or '
+                         '"scatter" allowed')
+
+    g.ax_joint.axhline(y=0, ls='--', color='k', alpha=0.3)
+    g.ax_joint.axvline(x=0, ls='--', color='k', alpha=0.3)
+
+
+def make_report(pdf_dir, df, sensors):
+    with PdfPages(str(pdf_dir)) as pp:
+        plot_delta_b_histogram(df, sensors)
+        pp.savefig()
+        plt.close()
+
+        plot_histogram_2d(df, sensors)
+        pp.savefig()
+        plt.close()
+
+        plot_histogram_2d(df, sensors, kind='scatter')
+        pp.savefig()
+        plt.close()
