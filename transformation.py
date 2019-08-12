@@ -22,13 +22,10 @@ def get_region(region, curve, mask, length=5):
     -------
     array of curve around the region of interest
     """
-    if not any(mask):
+    if not single_apoptotic(mask):
         return [np.nan] * length
 
     inds = np.where(mask)[0]
-
-    if (np.diff(inds) != 1).any():
-        return [np.nan] * length
 
     if region not in ['pre', 'pos']:
         raise ValueError('Only pre or pos region.')
@@ -96,3 +93,16 @@ def interpolate(new_time, time, curve):
     """Interpolate curve using new_time as xdata"""
     f = splrep(time, curve, k=3)
     return splev(new_time, f, der=0)
+
+
+def single_apoptotic(mask):
+    """Determines whether a curve has a single apoptotic region"""
+    if not any(mask):
+        return False
+
+    inds = np.where(mask)[0]
+
+    if (np.diff(inds) != 1).any():
+        return False
+
+    return True
