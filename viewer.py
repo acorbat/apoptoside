@@ -4,6 +4,7 @@ import seaborn as sns
 from scipy import stats
 
 from matplotlib.widgets import RectangleSelector, Button
+from matplotlib.backends.backend_pdf import PdfPages
 
 
 def df_viewer(df, sensors, save_dir):
@@ -218,6 +219,7 @@ def plot_delta_b_histogram(df, sensors):
 
 
 def plot_histogram_2d(df, sensors):
+    """Generates a 2D histogram of the given DataFrame and sensor dictionary."""
     x_data_col = "BFP_to_Cit"
     y_data_col = "BFP_to_Kate"
 
@@ -233,3 +235,14 @@ def plot_histogram_2d(df, sensors):
                       mincnt=1, cmap='Greys')
     g.ax_joint.axhline(y=0, ls='--', color='k', alpha=0.3)
     g.ax_joint.axvline(x=0, ls='--', color='k', alpha=0.3)
+
+
+def make_report(pdf_dir, df, sensors):
+    with PdfPages(str(pdf_dir)) as pp:
+        plot_delta_b_histogram(df, sensors)
+        pp.savefig()
+        plt.close()
+
+        plot_histogram_2d(df, sensors)
+        pp.savefig()
+        plt.close()
