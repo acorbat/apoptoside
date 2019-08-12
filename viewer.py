@@ -1,5 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy import stats
+
 from matplotlib.widgets import RectangleSelector, Button
 
 
@@ -212,3 +215,21 @@ def plot_delta_b_histogram(df, sensors):
     plt.xlabel('$\Delta$b')
     plt.ylabel('Frequency')
     plt.legend()
+
+
+def plot_histogram_2d(df, sensors):
+    x_data_col = "BFP_to_Cit"
+    y_data_col = "BFP_to_Kate"
+
+    df_fil = df.query('is_single_apoptotic')
+    df_fil = df_fil[[x_data_col, y_data_col]]
+    df_fil = df_fil[(np.abs(stats.zscore(df_fil)) < 3).all(axis=1)]
+    g = sns.JointGrid(x_data_col, y_data_col, df_fil, height=6.6)
+
+    sns.distplot(df_fil[x_data_col], kde=False, bins=30, ax=g.ax_marg_x)
+    sns.distplot(df_fil[y_data_col], kde=False, bins=30, ax=g.ax_marg_y,
+                 vertical=True)
+    g.ax_joint.hexbin(df_fil[x_data_col], df_fil[y_data_col], gridsize=30,
+                      mincnt=1, cmap='Greys')
+    g.ax_joint.axhline(y=0, ls='--', color='k', alpha=0.3)
+    g.ax_joint.axvline(x=0, ls='--', color='k', alpha=0.3)
