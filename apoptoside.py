@@ -248,6 +248,9 @@ class Apop(object):
             )
 
     def add_time_differences(self, refer_to=None):
+        """Adds a column with the time differences between max activities.
+        refer_to parameter can be used to refer every time to one specific
+        sensor"""
         fluorophores = self.sensors.fluorophore.values
 
         if refer_to:
