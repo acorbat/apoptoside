@@ -291,17 +291,17 @@ class Apop(object):
                     axis=1
                 )
 
-    def make_reports(self, base_pdf_dir, groupby):
+    def make_reports(self, base_pdf_dir, groupby, hue=None):
         """Makes the pdf reports grouping by every var at groupby and adding
         their case at the name."""
         for this_var, this_df in self.df.groupby(groupby):
-            this_var = list(this_var)
+            this_var = list([this_var]) if isinstance(this_var, str) else list(this_var)
             this_var.append(base_pdf_dir.name)
             pdf_dir = base_pdf_dir.with_name('_'.join(this_var))
 
             pdf_dir.parent.mkdir(parents=True, exist_ok=True)
 
-            vw.make_report(pdf_dir, this_df, self.sensors)
+            vw.make_report(pdf_dir, this_df, self.sensors, hue=hue)
 
     def _generate_time_vector(self, time, time_step):
         """Generates a new time vector with same start as time, until almost
