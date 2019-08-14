@@ -207,7 +207,7 @@ class Apop(object):
                 axis=1
             ))
 
-    def add_interpolation(self, new_time_col, time_col, curve_col):
+    def add_interpolation(self, new_time_col, time_col, curve_col, all_fluo=False):
         """Add an interpolation column.
 
         Parameters
@@ -218,9 +218,20 @@ class Apop(object):
             name of the column with the old time vector
         curve_col : string
             name of the column with the old data to be interpolated
+        all_fluo : bool (optional, default=False)
+            If True, adds the fluorophore at the beginning of every column
         """
-        for fluo in self.sensors.fluorophore:
-            self.df[name_col(fluo, curve_col, 'interpolate')] = self.df.apply(
+        if all_fluo:
+            for fluo in self.sensors.fluorophore:
+                fluo_new_time_col = name_col(fluo, new_time_col)
+                fluo_time_col = name_col(fluo, time_col)
+                fluo_curve_col = name_col(fluo, curve_col)
+                self.add_interpolation(fluo_new_time_col,
+                                       fluo_time_col,
+                                       fluo_curve_col,
+                                       all_fluo=False)
+        else:
+            self.df[name_col(curve_col, 'interpolate')] = self.df.apply(
                 lambda x: tf.interpolate(
                     x[new_time_col],
                     x[time_col],
@@ -229,15 +240,31 @@ class Apop(object):
                 axis=1
             )
 
-    def add_times(self, time_col, time_step):
-        """Generate a new time vector with another time_step."""
-        self.df[name_col('new', time_col)] = self.df.apply(
-            lambda x: self._generate_time_vector(
-                x[time_col],
-                time_step
-            ),
-            axis=1
-        )
+    def add_times(self, time_col, time_step, all_fluo=False):
+        """Generate a new time vector with another time_step.
+
+        Parameters
+        ----------
+        time_col : string
+            Name of the column from which to generate the new time vector.
+        time_step : float
+            Time step to be used for the new vector.
+        all_fluo : bool (optional, default=False)
+            If True, adds the fluorophore at the beginning of every column
+        """
+        if all_fluo:
+            for fluo in self.sensors.fluorophore:
+                fluo_time_col = name_col(fluo, time_col)
+                self.add_times(fluo_time_col, time_step, all_fluo=False)
+
+        else:
+            self.df[name_col(time_col, 'new')] = self.df.apply(
+                lambda x: self._generate_time_vector(
+                    x[time_col],
+                    time_step
+                ),
+                axis=1
+            )
 
     def add_max_times(self, time_col, curve_col):
         """Add the time of the maximum of curve"""
@@ -265,7 +292,7 @@ class Apop(object):
                 )
 
     def make_reports(self, base_pdf_dir, groupby):
-        """Makes the pdf reports groupying by every var at groupby and adding
+        """Makes the pdf reports grouping by every var at groupby and adding
         their case at the name."""
         for this_var, this_df in self.df.groupby(groupby):
             this_var = list(this_var)
@@ -279,9 +306,12 @@ class Apop(object):
     def _generate_time_vector(self, time, time_step):
         """Generates a new time vector with same start as time, until almost
         end with time_step separation."""
-        start = np.nanmin(time)
-        end = np.nanmax(time)
-        return np.arange(start, end, time_step)
+        if np.isfinite(time).all():
+            start = np.nanmin(time)
+            end = np.nanmax(time)
+            return np.arange(start, end, time_step)
+        else:
+            return np.array([np.nan])
 
     def _mask(self, curve, mask):
         """Returns a masked array or nans if there is no True  in mask, or mask

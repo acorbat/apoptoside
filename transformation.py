@@ -91,6 +91,9 @@ def normalize(vect):
 
 def interpolate(new_time, time, curve):
     """Interpolate curve using new_time as xdata"""
+    if not np.isfinite(time).all():
+        return np.array([np.nan])
+
     f = splrep(time, curve, k=3)
     return splev(new_time, f, der=0)
 
