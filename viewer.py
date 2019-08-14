@@ -218,14 +218,14 @@ def plot_delta_b_histogram(df, sensors):
     plt.legend()
 
 
-def plot_histogram_2d(df, sensors, kind='histogram_2d'):
+def plot_histogram_2d(df, sensors, kind='histogram_2d', hue=None):
     """Generates a 2D histogram of the given DataFrame and sensor dictionary."""
     x_data_col = "BFP_to_Cit"
     y_data_col = "BFP_to_Kate"
 
     df_fil = df.query('is_single_apoptotic')
-    df_fil = df_fil[[x_data_col, y_data_col]]
-    df_fil = df_fil[(np.abs(stats.zscore(df_fil)) < 3).all(axis=1)]
+    df_var = df_fil[[x_data_col, y_data_col]]
+    df_fil = df_fil[(np.abs(stats.zscore(df_var)) < 3).all(axis=1)]
     g = sns.JointGrid(x_data_col, y_data_col, df_fil, height=6.6)
 
     sns.distplot(df_fil[x_data_col], kde=False, bins=30, ax=g.ax_marg_x)
@@ -235,7 +235,17 @@ def plot_histogram_2d(df, sensors, kind='histogram_2d'):
         g.ax_joint.hexbin(df_fil[x_data_col], df_fil[y_data_col], gridsize=30,
                           mincnt=1, cmap='Greys')
     elif kind == 'scatter':
-        g.ax_joint.scatter(df_fil[x_data_col], df_fil[y_data_col])
+        if hue:
+            for this_var, this_df in df_fil.groupby(hue):
+                g.ax_joint.scatter(this_df[x_data_col],
+                                   this_df[y_data_col],
+                                   label=this_var)
+            plt.sca(g.ax_joint)
+            plt.legend()
+
+        else:
+            g.ax_joint.scatter(df_fil[x_data_col], df_fil[y_data_col])
+
     else:
         raise ValueError('%s is not a permitted kind. Only "histogram_2d" or '
                          '"scatter" allowed')
@@ -244,7 +254,7 @@ def plot_histogram_2d(df, sensors, kind='histogram_2d'):
     g.ax_joint.axvline(x=0, ls='--', color='k', alpha=0.3)
 
 
-def make_report(pdf_dir, df, sensors):
+def make_report(pdf_dir, df, sensors, hue=None):
     with PdfPages(str(pdf_dir)) as pp:
         plot_delta_b_histogram(df, sensors)
         pp.savefig()
@@ -254,6 +264,6 @@ def make_report(pdf_dir, df, sensors):
         pp.savefig()
         plt.close()
 
-        plot_histogram_2d(df, sensors, kind='scatter')
+        plot_histogram_2d(df, sensors, kind='scatter', hue=hue)
         pp.savefig()
         plt.close()
