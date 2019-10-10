@@ -178,20 +178,28 @@ class Apop(object):
                     x[name_col(fluo, 'perpendicular', col_end)]),
                 axis=1)
 
-    def add_delta_b(self, estimator='mean'):
+    def add_delta_b(self, estimator='mean', fix_b=False):
         """Adds an estimation of delta b parameter column.
 
         Parameters
         ----------
         estimator : string
             Which statistic estimator to use
+        fix_b : boolean (default: False)
+            If True, b is set from sensors dictionary
         """
-        for fluo in self.sensors.fluorophore:
-            self.df[name_col(fluo, 'b')] = self.df.apply(
-                lambda x: tf.estimate_delta_b(
-                    x[name_col(fluo, 'fluo', estimator, 'pre')],
-                    x[name_col(fluo, 'fluo', estimator, 'pos')]),
-                axis=1)
+        if fix_b:
+            for fluo in self.sensors.fluorophore:
+                self.df['_'.join([fluo, 'b'])] = \
+                self.sensors.query('fluorophore == "%s"' % fluo).b.values[0]
+
+        else:
+            for fluo in self.sensors.fluorophore:
+                self.df[name_col(fluo, 'b')] = self.df.apply(
+                    lambda x: tf.estimate_delta_b(
+                        x[name_col(fluo, 'fluo', estimator, 'pre')],
+                        x[name_col(fluo, 'fluo', estimator, 'pos')]),
+                    axis=1)
 
     def add_activities(self):
         """Adds the activity column for each fluorophore using the found b
