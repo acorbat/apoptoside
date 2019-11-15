@@ -274,10 +274,9 @@ def plot_delta_b_histogram(df, sensors):
     plt.legend()
 
 
-def plot_histogram_2d(df, sensors, kind='histogram_2d', hue=None):
+def plot_histogram_2d(df, sensors, kind='histogram_2d', hue=None, cols=["BFP_to_Cit", "BFP_to_Kate"]):
     """Generates a 2D histogram of the given DataFrame and sensor dictionary."""
-    x_data_col = "BFP_to_Cit"
-    y_data_col = "BFP_to_Kate"
+    x_data_col, y_data_col = cols
 
     df_fil = df.query('is_single_apoptotic')
     df_var = df_fil[[x_data_col, y_data_col]]
@@ -310,16 +309,16 @@ def plot_histogram_2d(df, sensors, kind='histogram_2d', hue=None):
     g.ax_joint.axvline(x=0, ls='--', color='k', alpha=0.3)
 
 
-def make_report(pdf_dir, df, sensors, hue=None):
+def make_report(pdf_dir, df, sensors, hue=None, cols=["BFP_to_Cit", "BFP_to_Kate"]):
     with PdfPages(str(pdf_dir)) as pp:
         plot_delta_b_histogram(df, sensors)
         pp.savefig()
         plt.close()
 
-        plot_histogram_2d(df, sensors)
+        plot_histogram_2d(df, sensors, cols=cols)
         pp.savefig()
         plt.close()
 
-        plot_histogram_2d(df, sensors, kind='scatter', hue=hue)
+        plot_histogram_2d(df, sensors, cols=cols, kind='scatter', hue=hue)
         pp.savefig()
         plt.close()
