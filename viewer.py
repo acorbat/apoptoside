@@ -274,7 +274,8 @@ def plot_delta_b_histogram(df, sensors):
     plt.legend()
 
 
-def plot_histogram_2d(df, sensors, kind='histogram_2d', hue=None, cols=["BFP_to_Cit", "BFP_to_Kate"]):
+def plot_histogram_2d(df, sensors, kind='histogram_2d', hue=None,
+                      cols=["BFP_to_Cit", "BFP_to_Kate"]):
     """Generates a 2D histogram of the given DataFrame and sensor dictionary."""
     x_data_col, y_data_col = cols
 
