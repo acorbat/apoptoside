@@ -54,6 +54,8 @@ class Apop(object):
 
         self.df = pd.read_pickle(str(data_path))
         self.sensors = pd.DataFrame(columns=['fluorophore', 'b', 'color'])
+        self.refer_to = 'BFP'
+        self.time_diff_cols = []
         self.save_dir = save_dir
 
     def add_window_fit(self, xdata_column='time', ydata_column='anisotropy'):
@@ -178,20 +180,28 @@ class Apop(object):
                     x[name_col(fluo, 'perpendicular', col_end)]),
                 axis=1)
 
-    def add_delta_b(self, estimator='mean'):
+    def add_delta_b(self, estimator='mean', fix_b=False):
         """Adds an estimation of delta b parameter column.
 
         Parameters
         ----------
         estimator : string
             Which statistic estimator to use
+        fix_b : boolean (default: False)
+            If True, b is set from sensors dictionary
         """
-        for fluo in self.sensors.fluorophore:
-            self.df[name_col(fluo, 'b')] = self.df.apply(
-                lambda x: tf.estimate_delta_b(
-                    x[name_col(fluo, 'fluo', estimator, 'pre')],
-                    x[name_col(fluo, 'fluo', estimator, 'pos')]),
-                axis=1)
+        if fix_b:
+            for fluo in self.sensors.fluorophore:
+                self.df['_'.join([fluo, 'b'])] = \
+                self.sensors.query('fluorophore == "%s"' % fluo).b.values[0]
+
+        else:
+            for fluo in self.sensors.fluorophore:
+                self.df[name_col(fluo, 'b')] = self.df.apply(
+                    lambda x: tf.estimate_delta_b(
+                        x[name_col(fluo, 'fluo', estimator, 'pre')],
+                        x[name_col(fluo, 'fluo', estimator, 'pos')]),
+                    axis=1)
 
     def add_activities(self):
         """Adds the activity column for each fluorophore using the found b
@@ -285,7 +295,9 @@ class Apop(object):
             get = fluorophores[ind], fluorophores[-1]
             fluorophores[-1], fluorophores[ind] = get
 
+        self.time_diff_cols = []
         for fluo1, fluo2 in combinations(fluorophores, 2):
+                self.time_diff_cols.append(name_col(fluo2, 'to', fluo1))
                 self.df[name_col(fluo2, 'to', fluo1)] = self.df.apply(
                     lambda x: x[name_col(fluo2, 'max_time')] - x[name_col(fluo1, 'max_time')],
                     axis=1
@@ -301,7 +313,8 @@ class Apop(object):
 
             pdf_dir.parent.mkdir(parents=True, exist_ok=True)
 
-            vw.make_report(pdf_dir, this_df, self.sensors, hue=hue)
+            vw.make_report(pdf_dir, this_df, self.sensors, hue=hue,
+                           cols=self.time_diff_cols[-2:])
 
     def _generate_time_vector(self, time, time_step):
         """Generates a new time vector with same start as time, until almost

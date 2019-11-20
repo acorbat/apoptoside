@@ -9,52 +9,61 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 def df_viewer(df, sensors, save_dir):
 
-    fig, axs = plt.subplots(2, 1, gridspec_kw={'height_ratios': [5, 1]})
+    fig, axs = plt.subplots(5, 1,
+                            figsize=(8, 10),
+                            gridspec_kw={'height_ratios': [5, 5, 5, 5, 1]},
+                            sharex=True)
 
     class SubPlot(object):
 
-        def __init__(self, axs, df_row, sensors):
+        def __init__(self, axs, df_row, sensors,
+                     x_col='time', y_col_suffix='anisotropy'):
             self.sensors = sensors
             self.axs = axs
-            time = df_row.time
+            self.x_col = x_col
+            self.y_col_suffix = y_col_suffix
+
+            time = df_row[self.x_col]
             mask = df_row.sigmoid_mask
 
             plt.sca(self.axs)
 
             self.lines = []
             for _, sensor_row in sensors.iterrows():
-                anis = df_row[sensor_row.fluorophore + '_anisotropy']
-                l, = self.axs.plot(time, anis, color=sensor_row.color,
+                this_y = df_row['_'.join([sensor_row.fluorophore, self.y_col_suffix])]
+                l, = self.axs.plot(time, this_y, color=sensor_row.color,
                                    label=sensor_row.fluorophore)
                 self.lines.append(l)
 
             plt.legend()
             plt.sca(self.axs)
-            self.set_title(df_row)
-            y_lims = self.axs.get_ylim()
-            self.fill = self.axs.fill_between(time, y_lims[0], y_lims[1],
-                                              where=mask, color='g', alpha=0.1)
+            if len(time) == len(mask):
+                self.set_title(df_row)
+                y_lims = self.axs.get_ylim()
+                self.fill = self.axs.fill_between(time, y_lims[0], y_lims[1],
+                                                  where=mask, color='g', alpha=0.1)
             plt.xlabel('Time (min.)')
-            plt.ylabel('Anisotropy')
+            plt.ylabel(y_col_suffix)
             plt.draw()
 
         def update(self, df_row):
             plt.sca(self.axs)
-            time = df_row.time
+            time = df_row[self.x_col]
             mask = df_row.sigmoid_mask
             for line, (_, sensor_row) in zip(self.lines,
                                              self.sensors.iterrows()):
-                anis = df_row[sensor_row.fluorophore + '_anisotropy']
+                this_y = df_row['_'.join([sensor_row.fluorophore, self.y_col_suffix])]
                 line.set_xdata(time)
-                line.set_ydata(anis)
+                line.set_ydata(this_y)
 
             self.axs.relim(visible_only=True)
             self.axs.autoscale_view()
-            y_lims = self.axs.get_ylim()
-            self.fill.remove()
-            self.fill = self.axs.fill_between(time, y_lims[0], y_lims[1],
-                                              where=mask, color='g', alpha=0.1)
-            self.set_title(df_row)
+            if len(time) == len(mask):
+                y_lims = self.axs.get_ylim()
+                self.fill.remove()
+                self.fill = self.axs.fill_between(time, y_lims[0], y_lims[1],
+                                                  where=mask, color='g', alpha=0.1)
+                self.set_title(df_row)
             plt.draw()
 
         def set_title(self, df_row):
@@ -65,15 +74,60 @@ def df_viewer(df, sensors, save_dir):
             self.axs.set_title('index: %s; date: %s; drug: %s; plasmid: %s' %
                                (ind, date, drug, plasmid))
 
-    subplot = SubPlot(axs[0], df.iloc[0], sensors)
+    class SimpleSubPlot(object):
+
+        def __init__(self, axs, df_row, x_col, y_col):
+            self.axs = axs
+            self.x_col = x_col
+            self.y_col = y_col
+            x = df_row[self.x_col]
+            y = df_row[self.y_col]
+
+            plt.sca(self.axs)
+
+            self.line, = self.axs.plot(x, y, color='k')
+
+            plt.sca(self.axs)
+
+            plt.xlabel('Time (min.)')
+            plt.ylabel(y_col)
+            plt.draw()
+
+        def update(self, df_row):
+            plt.sca(self.axs)
+            x = df_row[self.x_col]
+            y = df_row[self.y_col]
+
+            self.line.set_xdata(x)
+            self.line.set_ydata(y)
+
+            self.axs.relim(visible_only=True)
+            self.axs.autoscale_view()
+            plt.draw()
+
+    subplot_anisotropy = SubPlot(axs[0], df.iloc[0], sensors)
+    subplot_activity = SubPlot(axs[1], df.iloc[0], sensors,
+                      x_col='Cit_time_activity_new',
+                      y_col_suffix='activity_interpolate')
+
+    subplot_area = SimpleSubPlot(axs[2], df.iloc[0], x_col='time', y_col='area')
+    subplot_solidity = SimpleSubPlot(axs[3], df.iloc[0], x_col='time',
+                                 y_col='solidity')
+
+    subplots = [subplot_anisotropy,
+                subplot_activity,
+                subplot_area,
+                subplot_solidity]
 
     class Index(object):
 
-        def __init__(self, df):
+        def __init__(self, df, subplots):
             self.df = df
             self.cur_ind = 0
             self.max_ind = len(self.df.index)
             self.this_ind = self.df.index[self.cur_ind]
+
+            self.subplots = subplots
 
             self.rectangle = []
             self.extents = []
@@ -82,12 +136,14 @@ def df_viewer(df, sensors, save_dir):
         def next(self, event):
             self.cur_ind = min(self.cur_ind + 1, self.max_ind)
             self.this_ind = df.index[self.cur_ind]
-            subplot.update(df.loc[self.this_ind])
+            for subplot in self.subplots:
+                subplot.update(df.loc[self.this_ind])
 
         def prev(self, event):
             self.cur_ind = max(self.cur_ind - 1, 0)
             self.this_ind = df.index[self.cur_ind]
-            subplot.update(df.loc[self.this_ind])
+            for subplot in self.subplots:
+                subplot.update(df.loc[self.this_ind])
 
         def get_mask(self):
             t_ini = self.extents[0]
@@ -127,10 +183,10 @@ def df_viewer(df, sensors, save_dir):
 
             print('saved')
 
-    callback = Index(df)
+    callback = Index(df, subplots)
     plt.sca(axs[1])
 
-    axs[1].axis('off')
+    axs[-1].axis('off')
 
     axprev = plt.axes([0.7, 0.05, 0.1, 0.075])
     axnext = plt.axes([0.81, 0.05, 0.1, 0.075])
@@ -218,10 +274,10 @@ def plot_delta_b_histogram(df, sensors):
     plt.legend()
 
 
-def plot_histogram_2d(df, sensors, kind='histogram_2d', hue=None):
+def plot_histogram_2d(df, sensors, kind='histogram_2d', hue=None,
+                      cols=["BFP_to_Cit", "BFP_to_Kate"]):
     """Generates a 2D histogram of the given DataFrame and sensor dictionary."""
-    x_data_col = "BFP_to_Cit"
-    y_data_col = "BFP_to_Kate"
+    x_data_col, y_data_col = cols
 
     df_fil = df.query('is_single_apoptotic')
     df_var = df_fil[[x_data_col, y_data_col]]
@@ -254,16 +310,16 @@ def plot_histogram_2d(df, sensors, kind='histogram_2d', hue=None):
     g.ax_joint.axvline(x=0, ls='--', color='k', alpha=0.3)
 
 
-def make_report(pdf_dir, df, sensors, hue=None):
+def make_report(pdf_dir, df, sensors, hue=None, cols=["BFP_to_Cit", "BFP_to_Kate"]):
     with PdfPages(str(pdf_dir)) as pp:
         plot_delta_b_histogram(df, sensors)
         pp.savefig()
         plt.close()
 
-        plot_histogram_2d(df, sensors)
+        plot_histogram_2d(df, sensors, cols=cols)
         pp.savefig()
         plt.close()
 
-        plot_histogram_2d(df, sensors, kind='scatter', hue=hue)
+        plot_histogram_2d(df, sensors, cols=cols, kind='scatter', hue=hue)
         pp.savefig()
         plt.close()

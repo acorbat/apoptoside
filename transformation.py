@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.misc import derivative
+from scipy.signal import savgol_filter
 from scipy.interpolate import splrep, splev
 
 
@@ -43,19 +44,30 @@ def estimate_delta_b(fluo_pre, fluo_pos):
     return fluo_pre/fluo_pos - 1
 
 
-def calculate_activity(time, anisotropy, delta_b, order=5):
+def calculate_activity(time, anisotropy, delta_b, order=5, method='savgol'):
     """Calculates activity of enzyme according to anisotropy curve."""
     time_steps = np.diff(time)
     time_step = np.nanmin(time_steps)
     if not all(time_steps == time_step):
         time, anisotropy = fill_in_curves(time, anisotropy, smooth=True)
 
-    def this_vect(t):
-        inds = np.searchsorted(time, t)
-        inds = np.clip(inds, 0, len(anisotropy) - 1)
-        return anisotropy[inds]
+    if method == 'findif':
+        def this_vect(t):
+            inds = np.searchsorted(time, t)
+            inds = np.clip(inds, 0, len(anisotropy) - 1)
+            return anisotropy[inds]
 
-    der = derivative(this_vect, time, dx=time_step, order=order)
+        der = derivative(this_vect, time, dx=time_step, order=order)
+
+    elif method == 'savgol':
+        window_length = int(np.floor(20 / time_step))
+        if window_length % 2 == 0:
+            window_length += 1
+        window_length = np.max((window_length, 3))
+
+        der = savgol_filter(anisotropy, window_length=window_length,
+                            polyorder=2,
+                            deriv=1, delta=time_step, mode='nearest')
 
     anisotropy_normalized = normalize(anisotropy)
     activity = der / ((1 + delta_b * anisotropy_normalized) ** 2)
