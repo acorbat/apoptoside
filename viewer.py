@@ -323,3 +323,70 @@ def make_report(pdf_dir, df, sensors, hue=None, cols=["BFP_to_Cit", "BFP_to_Kate
         plot_histogram_2d(df, sensors, cols=cols, kind='scatter', hue=hue)
         pp.savefig()
         plt.close()
+
+
+# Make KDE plots
+def get_level_for_kde(x, y, level):
+    """Returns Levels to be used for kde contour plotting."""
+    if isinstance(level, (list, tuple)):
+        vals = []
+        for level in level:
+            val = get_level_for_kde(x, y, level)
+            vals.append(val)
+
+    else:
+        kde = stats.gaussian_kde([x, y])
+        probs = kde.pdf([x, y])
+        arr = np.asarray([x, y, probs]).T
+        arr = arr[arr[:, 2].argsort()]
+        ind = np.ceil(len(x) * level).astype(int)
+        vals = arr[ind, 2]
+
+    return vals
+
+
+def plot_joint_kde(g, df, cols=["BFP_to_Cit", "BFP_to_Kate"], label=None,
+                   my_lvls=[0.34, 0.68]):
+
+    # Filter dataset
+    my_df = df.dropna(subset=cols)
+
+    # Plot marginals
+    sns.kdeplot(my_df[cols[0]], shade=True, ax=g.ax_marg_x)
+    sns.kdeplot(my_df[cols[1]], shade=True, ax=g.ax_marg_y, vertical=True)
+
+    # Plot joint
+    cs = sns.kdeplot(my_df[cols[0]], my_df[cols[1]], alpha=1,
+                     levels=get_level_for_kde(my_df[cols[0]],
+                                              my_df[cols[1]],
+                                              my_lvls),
+                     ax=g.ax_joint, shade_lowest=False)
+    cs.collections[-1].set_label(label)
+
+    return g
+
+
+def plot_distributions(df, cols=["BFP_to_Cit", "BFP_to_Kate"], groupby=None,
+                  my_lvls=[0.34, 0.68]):
+
+    g = sns.JointGrid(cols[0], cols[1], df)
+
+    if groupby:
+        for this_var, this_df in df.groupby(groupby):
+            plot_joint_kde(g, this_df, cols=cols, label=this_var,
+                           my_lvls=my_lvls)
+    else:
+        plot_joint_kde(g, df, cols=cols, my_lvls=my_lvls)
+
+    g.ax_joint.axvline(x=0, color='k', lw=1, ls='--', alpha=0.5)
+    g.ax_joint.axhline(y=0, color='k', lw=1, ls='--', alpha=0.5)
+    plt.sca(g.ax_joint)
+    plt.legend(loc=3, framealpha=0)
+
+    g.ax_marg_x.set_xlabel('')
+    g.ax_marg_y.set_ylabel('')
+    g.ax_marg_x.legend_.remove()
+    g.ax_marg_y.legend_.remove()
+    plt.tight_layout()
+
+    return g
