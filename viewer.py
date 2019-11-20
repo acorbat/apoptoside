@@ -6,6 +6,8 @@ from scipy import stats
 from matplotlib.widgets import RectangleSelector, Button
 from matplotlib.backends.backend_pdf import PdfPages
 
+import transformation as tf
+
 
 def df_viewer(df, sensors, save_dir):
 
@@ -390,3 +392,27 @@ def plot_distributions(df, cols=["BFP_to_Cit", "BFP_to_Kate"], groupby=None,
     plt.tight_layout()
 
     return g
+
+
+def plot_curves(df, sensors):
+
+    for ind, row in df.iterrows():
+
+        max_times = [row[fluo + '_max_time'] for fluo in sensors.fluorophore.values]
+        max_time = np.min(max_times)
+        if np.isnan(max_time):
+            continue
+
+        for fluo_ind, this_fluo in sensors.iterrows():
+            fluo = this_fluo.fluorophore
+            time = row.time.copy()
+            anisotropy = row[fluo + '_anisotropy'].copy()
+
+            time -= max_time
+            mask = (-30 < time) & (time < 30)
+            # anisotropy = tf.normalize(anisotropy[mask])
+            anisotropy = anisotropy[mask]
+
+            plt.plot(time[mask], anisotropy, color=this_fluo.color, alpha=0.3)
+
+    plt.show()
