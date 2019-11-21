@@ -5,6 +5,7 @@ from scipy import stats
 
 from matplotlib.widgets import RectangleSelector, Button
 from matplotlib.backends.backend_pdf import PdfPages
+import matplotlib.patheffects as pe
 
 import transformation as tf
 
@@ -397,7 +398,7 @@ def plot_distributions(df, cols=["BFP_to_Cit", "BFP_to_Kate"], groupby=None,
 def plot_curves(df, sensors):
 
     for ind, row in df.iterrows():
-
+        curves = {fluo: [] for fluo in sensors.fluorophore.values}
         max_times = [row[fluo + '_max_time'] for fluo in sensors.fluorophore.values]
         max_time = np.min(max_times)
         if np.isnan(max_time):
@@ -412,7 +413,16 @@ def plot_curves(df, sensors):
             mask = (-30 < time) & (time < 30)
             # anisotropy = tf.normalize(anisotropy[mask])
             anisotropy = anisotropy[mask]
+            curves[fluo].append(anisotropy)
 
             plt.plot(time[mask], anisotropy, color=this_fluo.color, alpha=0.3)
+
+    for fluo_ind, this_fluo in sensors.iterrows():
+        fluo = this_fluo.fluorophore
+        anis = np.asarray(curves[fluo])
+        anis = np.nanmean(anis, axis=0)
+        plt.plot(time[mask], anis, color=this_fluo.color, lw=3,
+                 path_effects=[pe.Stroke(linewidth=4, foreground='k'),
+                               pe.Normal()])
 
     plt.show()
