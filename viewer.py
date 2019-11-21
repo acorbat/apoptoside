@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
+from scipy.interpolate import interp1d
+from scipy.signal import savgol_filter
 
 from matplotlib.widgets import RectangleSelector, Button
 from matplotlib.backends.backend_pdf import PdfPages
@@ -396,9 +398,9 @@ def plot_distributions(df, cols=["BFP_to_Cit", "BFP_to_Kate"], groupby=None,
 
 
 def plot_curves(df, sensors):
-
+    fine_time = np.arange(-60, 60, 1)
+    curves = {fluo: [] for fluo in sensors.fluorophore.values}
     for ind, row in df.iterrows():
-        curves = {fluo: [] for fluo in sensors.fluorophore.values}
         max_times = [row[fluo + '_max_time'] for fluo in sensors.fluorophore.values]
         max_time = np.min(max_times)
         if np.isnan(max_time):
@@ -410,19 +412,38 @@ def plot_curves(df, sensors):
             anisotropy = row[fluo + '_anisotropy'].copy()
 
             time -= max_time
-            mask = (-30 < time) & (time < 30)
+            mask = (-60 < time) & (time < 60)
             # anisotropy = tf.normalize(anisotropy[mask])
             anisotropy = anisotropy[mask]
-            curves[fluo].append(anisotropy)
+            curves[fluo].append(interpolate(fine_time, time[mask], anisotropy))
+            anisotropy = interpolate(fine_time, time[mask], anisotropy)
 
-            plt.plot(time[mask], anisotropy, color=this_fluo.color, alpha=0.3)
+            plt.plot(fine_time, anisotropy, color=this_fluo.color, alpha=0.1)
 
     for fluo_ind, this_fluo in sensors.iterrows():
         fluo = this_fluo.fluorophore
         anis = np.asarray(curves[fluo])
-        anis = np.nanmean(anis, axis=0)
-        plt.plot(time[mask], anis, color=this_fluo.color, lw=3,
+        anis_mean = np.nanmean(anis, axis=0)
+        anis_perc = np.nanpercentile(anis, [25, 75], axis=0)
+
+        plt.plot(fine_time, anis_mean, color=this_fluo.color, lw=3,
                  path_effects=[pe.Stroke(linewidth=4, foreground='k'),
                                pe.Normal()])
+        plt.fill_between(fine_time, anis_perc[0], anis_perc[1],
+                         edgecolor='k', facecolor=this_fluo.color, alpha=0.7)
 
+    plt.title('N = %s' % anis.shape[0])
+    plt.xlabel('Time (min.)')
+    plt.ylabel('Anisotropy')
+    plt.xlim((-50, 50))
     plt.show()
+
+
+def interpolate(new_time, time, curve):
+    """Interpolate curve using new_time as xdata"""
+    if not np.isfinite(time).all():
+        return np.array([np.nan])
+
+    curve = savgol_filter(curve, window_length=3, polyorder=1, mode='nearest')
+    f = interp1d(time, curve, kind='linear', bounds_error=False)
+    return f(new_time)
