@@ -530,7 +530,7 @@ def plot_curves(df, sensors, normalize=False):
 
             curves[fluo].append(interpolate(fine_time, time[mask], anisotropy))
 
-            plt.plot(fine_time, anisotropy, color=this_fluo.color, alpha=0.1)
+            plt.plot(time[mask], anisotropy, color=this_fluo.color, alpha=0.1)
 
     for fluo_ind, this_fluo in sensors.iterrows():
         fluo = this_fluo.fluorophore
