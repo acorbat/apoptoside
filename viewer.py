@@ -455,11 +455,13 @@ def plot_joint_kde(g, df, cols=["BFP_to_Cit", "BFP_to_Kate"], label=None,
     sns.kdeplot(my_df[cols[1]], shade=True, ax=g.ax_marg_y, vertical=True)
 
     # Plot joint
+    this_levels = get_level_for_kde(my_df[cols[0]],
+                                    my_df[cols[1]],
+                                    my_lvls)
     cs = sns.kdeplot(my_df[cols[0]], my_df[cols[1]], alpha=1,
-                     levels=get_level_for_kde(my_df[cols[0]],
-                                              my_df[cols[1]],
-                                              my_lvls),
-                     ax=g.ax_joint, shade_lowest=False)
+                     levels=this_levels,
+                     ax=g.ax_joint, shade_lowest=False,
+                     vmin=2*this_levels[0]-this_levels[1])
     cs.collections[-1].set_label(label)
 
     return g
@@ -525,7 +527,7 @@ def plot_curves(df, sensors, normalize=False):
             anisotropy = anisotropy[mask]
             if normalize:
                 anisotropy = tf.normalize(anisotropy[mask])
-            
+
             curves[fluo].append(interpolate(fine_time, time[mask], anisotropy))
 
             plt.plot(fine_time, anisotropy, color=this_fluo.color, alpha=0.1)
