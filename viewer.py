@@ -9,6 +9,7 @@ from matplotlib.widgets import RectangleSelector, Button
 from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.patheffects as pe
 
+import transformation as tf
 
 def df_viewer(df, sensors, save_dir):
     """DataFrame viewer lets you see the results in a DataFrame and reselect
@@ -502,7 +503,7 @@ def plot_distributions(df, cols=["BFP_to_Cit", "BFP_to_Kate"], groupby=None,
     return g
 
 
-def plot_curves(df, sensors):
+def plot_curves(df, sensors, normalize=False):
     """Centers the curves of the three sensors to the first one that reaches
     maximum activity. It then calculates the average curves and plots the mean
     and 25 and 75 percentiles."""
@@ -521,10 +522,12 @@ def plot_curves(df, sensors):
 
             time -= max_time
             mask = (-60 < time) & (time < 60)
-            # anisotropy = tf.normalize(anisotropy[mask])
             anisotropy = anisotropy[mask]
-            curves[fluo].append(interpolate(fine_time, time[mask], anisotropy))
+            if normalize:
+                anisotropy = tf.normalize(anisotropy[mask])
             
+            curves[fluo].append(interpolate(fine_time, time[mask], anisotropy))
+
             plt.plot(fine_time, anisotropy, color=this_fluo.color, alpha=0.1)
 
     for fluo_ind, this_fluo in sensors.iterrows():
