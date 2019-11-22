@@ -409,6 +409,19 @@ def make_report(pdf_dir, df, sensors, hue=None,
         pp.savefig()
         plt.close()
 
+        plot_distributions(df, cols=cols, hue=hue)
+        pp.savefig()
+        plt.close()
+
+        for this_var, this_df in df.groupby(hue):
+            plot_curves(df, sensors)
+            pp.savefig()
+            plt.close()
+
+            plot_curves(df, sensors, normalize=True)
+            pp.savefig()
+            plt.close()
+
 
 # Make KDE plots
 def get_level_for_kde(x, y, level):
@@ -426,6 +439,7 @@ def get_level_for_kde(x, y, level):
         arr = arr[arr[:, 2].argsort()]
         ind = np.ceil(len(x) * level).astype(int)
         vals = arr[ind, 2]
+        print(arr)
 
     return vals
 
@@ -467,8 +481,8 @@ def plot_joint_kde(g, df, cols=["BFP_to_Cit", "BFP_to_Kate"], label=None,
     return g
 
 
-def plot_distributions(df, cols=["BFP_to_Cit", "BFP_to_Kate"], groupby=None,
-                  my_lvls=[0.34, 0.68]):
+def plot_distributions(df, cols=["BFP_to_Cit", "BFP_to_Kate"], hue=None,
+                  my_lvls=[0.34, 0.68], tlim=(-30, 30)):
     """Plots the distributions in a kde plot.
 
     Parameters
@@ -477,15 +491,15 @@ def plot_distributions(df, cols=["BFP_to_Cit", "BFP_to_Kate"], groupby=None,
         DataFrame containing the data.
     cols : list of string
         names of columns in df that contain the x and y axis.
-    groupby : string or list of strings
+    hue : string or list of strings
         list of columns to group the DataFrame.
     my_lvls : float or list of floats
         Contours surrounding data.
     """
-    g = sns.JointGrid(cols[0], cols[1], df)
+    g = sns.JointGrid(cols[0], cols[1], df, xlim=tlim, ylim=tlim)
 
-    if groupby:
-        for this_var, this_df in df.groupby(groupby):
+    if hue:
+        for this_var, this_df in df.groupby(hue):
             plot_joint_kde(g, this_df, cols=cols, label=this_var,
                            my_lvls=my_lvls)
     else:
@@ -526,7 +540,7 @@ def plot_curves(df, sensors, normalize=False):
             mask = (-60 < time) & (time < 60)
             anisotropy = anisotropy[mask]
             if normalize:
-                anisotropy = tf.normalize(anisotropy[mask])
+                anisotropy = tf.normalize(anisotropy)
 
             curves[fluo].append(interpolate(fine_time, time[mask], anisotropy))
 
@@ -548,7 +562,6 @@ def plot_curves(df, sensors, normalize=False):
     plt.xlabel('Time (min.)')
     plt.ylabel('Anisotropy')
     plt.xlim((-50, 50))
-    plt.show()
 
 
 def interpolate(new_time, time, curve):
