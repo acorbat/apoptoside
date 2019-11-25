@@ -4,6 +4,7 @@ import seaborn as sns
 from scipy import stats
 from scipy.interpolate import interp1d
 from scipy.signal import savgol_filter
+import statsmodels.nonparametric.api as smnp
 
 from matplotlib.widgets import RectangleSelector, Button
 from matplotlib.backends.backend_pdf import PdfPages
@@ -433,13 +434,17 @@ def get_level_for_kde(x, y, level):
             vals.append(val)
 
     else:
-        kde = stats.gaussian_kde([x, y])
+        bw_func = getattr(smnp.bandwidths, "bw_" + 'scott')
+        x_bw = bw_func(x)
+        y_bw = bw_func(y)
+        bw = [x_bw, y_bw]
+
+        kde = smnp.KDEMultivariate([x, y], "cc", bw)
         probs = kde.pdf([x, y])
         arr = np.asarray([x, y, probs]).T
         arr = arr[arr[:, 2].argsort()]
         ind = np.ceil(len(x) * level).astype(int)
         vals = arr[ind, 2]
-        print(arr)
 
     return vals
 
@@ -463,6 +468,10 @@ def plot_joint_kde(g, df, cols=["BFP_to_Cit", "BFP_to_Kate"], label=None,
     """
     # Filter dataset
     my_df = df.dropna(subset=cols)
+
+    if len(my_df) == 0:
+        print('No datapoints in dataset')
+        return g
 
     # Plot marginals
     sns.kdeplot(my_df[cols[0]], shade=True, ax=g.ax_marg_x)
