@@ -1,10 +1,9 @@
-import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
-from scipy import stats
-
 from matplotlib.widgets import RectangleSelector, Button
 from matplotlib.backends.backend_pdf import PdfPages
+import numpy as np
+import seaborn as sns
+from scipy import stats
 
 
 def df_viewer(df, sensors, save_dir):

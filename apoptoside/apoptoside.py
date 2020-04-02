@@ -1,12 +1,12 @@
+from itertools import combinations
+
 import pandas as pd
 import numpy as np
 
-from itertools import combinations
-
-import filter_data as fd
-import viewer as vw
-import transformation as tf
-import anisotropy_functions as af
+from . import filter_data as fd
+from . import viewer as vw
+from . import transformation as tf
+from . import anisotropy_functions as af
 
 
 class Apop(object):
