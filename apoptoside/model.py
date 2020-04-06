@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from pyDOE import lhs
 from pysb.simulator import ScipyOdeSimulator
+from tqdm import tqdm
 
 from caspase_model.shared import observe_biosensors
 from . import anisotropy_functions as af
@@ -68,7 +69,7 @@ class Model(object):
             monomer_curve = simres[fluo + '_monomer']
 
             # Check whether all dimer has transformed into monomer
-            if 2 * dimer_curve.max() - monomer_curve.max() > 1:
+            if (2 * dimer_curve.max() - monomer_curve.max() ) / monomer_curve.max()> 1e-4:
                 print('Not all dimer was cleaved!')
 
             m_curve = monomer_curve / monomer_curve.max()
@@ -149,7 +150,7 @@ class Model(object):
         for fluo in self.sensors.fluorophore.values:
             params[fluo + '_anisotropy'] = [[np.nan], ] * len(params)
 
-        for row, param_set in params.iterrows():
+        for row, param_set in tqdm(params.iterrows(), total=(len(params))):
             for param_name, param_val in param_set.items():
                 if 'anisotropy' in param_name:
                     continue
