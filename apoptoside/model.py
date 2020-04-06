@@ -94,7 +94,7 @@ class Model(object):
             minimal value of the parameter.
         max_value : float
             Maximum value of the parameter to sweep.
-        correlation : tuple, (Default=np.nan)
+        correlation : tuple, (Default='uncorrelated')
             Tuple of parameter to which it's correlated and it's value."""
         if parameter_name not in self.initial_conditions and \
                 parameter_name not in self.rates:
