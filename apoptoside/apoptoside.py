@@ -276,11 +276,15 @@ class Apop(object):
                 axis=1
             )
 
-    def add_max_times(self, time_col, curve_col):
+    def add_max_times(self, time_col, curve_col, single_time_col=False):
         """Add the time of the maximum of curve"""
         for fluo in self.sensors.fluorophore:
+            if single_time_col:
+                this_time_col = time_col
+            else:
+                this_time_col = name_col(fluo, time_col)
             self.df[name_col(fluo, 'max_time')] = self.df.apply(
-                lambda x: x[name_col(fluo, time_col)][np.argmax(x[name_col(fluo, curve_col)])],
+                lambda x: x[this_time_col][np.argmax(x[name_col(fluo, curve_col)])],
                 axis=1
             )
 
