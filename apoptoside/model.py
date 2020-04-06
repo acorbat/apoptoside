@@ -3,7 +3,6 @@ import pandas as pd
 from pyDOE import lhs
 from pysb.simulator import ScipyOdeSimulator
 
-from caspase_model.models import arm
 from caspase_model.shared import observe_biosensors
 from . import anisotropy_functions as af
 
@@ -16,8 +15,8 @@ class Model(object):
     anisotropy curves. Time vector can be changed if necessary.
 
     """
-    def __init__(self, stimuli='extrinsic'):
-        self.model = arm(stimuli)
+    def __init__(self, model, **kwargs):
+        self.model = model(**kwargs)
         self.parameters = self.model.parameters
         self.initial_conditions = self.get_initial_conditions()
         self.rates = self.get_rates()
