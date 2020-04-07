@@ -63,7 +63,7 @@ class Model(object):
             fluo = this_sensor.fluorophore
             anisotropy_monomer = this_sensor.anisotropy_monomer
             anisotropy_dimer = this_sensor.anisotropy_dimer
-            b = this_sensor.b
+            b = 1 + this_sensor.b
 
             dimer_curve = simres[fluo + '_dimer']
             monomer_curve = simres[fluo + '_monomer']
