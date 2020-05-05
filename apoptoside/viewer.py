@@ -263,7 +263,7 @@ def plot_delta_b_histogram(df, sensors):
     for _, sensor_row in sensors.iterrows():
         fluo = sensor_row.fluorophore
         color = sensor_row.color
-        b_values = df[fluo + 'delta_b'].values
+        b_values = df[fluo + '_delta_b'].values
         b_values = b_values[np.isfinite(b_values)]
 
         plt.hist(b_values, bins=50, edgecolor='k',
