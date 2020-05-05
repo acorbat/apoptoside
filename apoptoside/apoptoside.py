@@ -301,9 +301,9 @@ class Apop(object):
 
         self.time_diff_cols = []
         for fluo1, fluo2 in combinations(fluorophores, 2):
-                self.time_diff_cols.append(name_col(fluo2, 'to', fluo1))
-                self.df[name_col(fluo2, 'to', fluo1)] = self.df.apply(
-                    lambda x: x[name_col(fluo2, 'max_time')] - x[name_col(fluo1, 'max_time')],
+                self.time_diff_cols.append(name_col(fluo1, 'to', fluo2))
+                self.df[name_col(fluo1, 'to', fluo2)] = self.df.apply(
+                    lambda x: x[name_col(fluo1, 'max_time')] - x[name_col(fluo2, 'max_time')],
                     axis=1
                 )
 
