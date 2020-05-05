@@ -53,7 +53,7 @@ class Apop(object):
     def __init__(self, data_path, save_dir=None):
 
         self.df = pd.read_pickle(str(data_path))
-        self.sensors = pd.DataFrame(columns=['fluorophore', 'b', 'color'])
+        self.sensors = pd.DataFrame(columns=['fluorophore', 'delta_b', 'color'])
         self.refer_to = 'BFP'
         self.time_diff_cols = []
         self.save_dir = save_dir
@@ -192,12 +192,12 @@ class Apop(object):
         """
         if fix_b:
             for fluo in self.sensors.fluorophore:
-                self.df['_'.join([fluo, 'b'])] = \
-                self.sensors.query('fluorophore == "%s"' % fluo).b.values[0]
+                self.df['_'.join([fluo, 'delta_b'])] = \
+                self.sensors.query('fluorophore == "%s"' % fluo).delta_b.values[0]
 
         else:
             for fluo in self.sensors.fluorophore:
-                self.df[name_col(fluo, 'b')] = self.df.apply(
+                self.df[name_col(fluo, 'delta_b')] = self.df.apply(
                     lambda x: tf.estimate_delta_b(
                         x[name_col(fluo, 'fluo', estimator, 'pre')],
                         x[name_col(fluo, 'fluo', estimator, 'pos')]),
@@ -212,7 +212,7 @@ class Apop(object):
                     x['time'],
                     x[name_col(fluo, 'anisotropy')],
                     x['sigmoid_mask'],
-                    x[name_col(fluo, 'b')]
+                    x[name_col(fluo, 'delta_b')]
                 ),
                 axis=1
             ))
