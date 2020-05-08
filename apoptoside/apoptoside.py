@@ -26,6 +26,9 @@ class Apop(object):
 
     Methods
     -------
+    load_df : Pandas.DataFrame or str or pathlib.Path
+        Loads DataFrame into Apoptoside.df. If it's a Pandas.DataFrame it is
+        loaded directly, else it is considered a string and loaded from pickle.
     add_window_fit : Performs windowed fit over the rows of each fluorophore
         in the DataFrame and adds a column with the parameters for each window.
     add_sigmoid_mask : Adds column with the automatic sigmoid mask for each
@@ -50,13 +53,52 @@ class Apop(object):
     add_interpolation : Add an interpolation column.
     """
 
-    def __init__(self, data_path, save_dir=None):
+    def __init__(self, data, save_dir=None):
 
-        self.df = pd.read_pickle(str(data_path))
+        self.load_df(data)
         self.sensors = pd.DataFrame(columns=['fluorophore', 'delta_b', 'color'])
         self.refer_to = 'BFP'
         self.time_diff_cols = []
         self.save_dir = save_dir
+
+    def load_df(self, data):
+        """Loads DataFrame into Apoptoside.df. If it's a Pandas.DataFrame it is
+        loaded directly, else it is considered a string and loaded from pickle."""
+        if isinstance(data, pd.DataFrame):
+            self.df = data
+        else:
+            self.df = pd.read_pickle(str(data))
+
+    def load_sensor(self, fluorophore, delta_b, color):
+        """Load sensors one by one."""
+        this_series = pd.Series({'fluorophore': fluorophore,
+                                 'delta_b': delta_b,
+                                 'color': color})
+        self.sensors = self.sensors.append(this_series, ignore_index=True)
+
+    def load_sensors(self, sensors=None, fluorophores=None, delta_bs=None,
+                     colors=None):
+        """Load all sensors simultaneously. This overwrites any previous
+        sensor loaded. If sensors is given, those are loaded. If not,
+        fluorophores, delta_bs and colors need to be given as Iterables.
+
+        sensors: dictionary or Pandas.DataFrame
+            Dictionary or Pandas.Dataframe with all sensors to be loaded.
+        fluorophores, delta_bs and colors: Iterables
+            Iterables with information for every sensor to be loaded."""
+        if sensors is not None:
+            df_sensors = pd.DataFrame(sensors)
+            if 'fluorophore' in df_sensors.columns and \
+                    'delta_b' in df_sensors.columns and \
+                    'color' in df_sensors.columns:
+                self.sensors = df_sensors
+            else:
+                raise ValueError('Either fluorophore, delta_b or color is missing')
+        else:
+            for this_fluo, this_delta_b, this_color in zip(fluorophores,
+                                                           delta_bs,
+                                                           colors):
+                self.load_sensor(this_fluo, this_delta_b, this_color)
 
     def add_window_fit(self, xdata_column='time', ydata_column='anisotropy'):
         """Performs windowed fit over the rows of each fluorophore in the
