@@ -17,7 +17,10 @@ class Model(object):
 
     """
     def __init__(self, model, **kwargs):
-        self.model = model(**kwargs)
+        try:
+            self.model = model(**kwargs)
+        except TypeError:
+            self.model = pysb.Model(base=model)
         self.parameters = self.model.parameters
         self.initial_conditions = self.get_initial_conditions()
         self.rates = self.get_rates()
@@ -25,7 +28,7 @@ class Model(object):
         self.sensors = pd.DataFrame(columns=['fluorophore',
                                              'anisotropy_monomer',
                                              'anisotropy_monomer',
-                                             'b', 'color'])
+                                             'b', 'color', 'caspase'])
         self.paramsweep = pd.DataFrame(columns=['parameter', 'min_value',
                                        'max_value', 'correlation'])
         observe_biosensors()  # This way observables are only defined at init
