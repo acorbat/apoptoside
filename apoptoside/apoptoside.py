@@ -56,8 +56,9 @@ class Apop(object):
     def __init__(self, data, save_dir=None):
 
         self.load_df(data)
-        self.sensors = pd.DataFrame(columns=['fluorophore', 'delta_b', 'color'])
-        self.refer_to = 'BFP'
+        self.sensors = pd.DataFrame(columns=['fluorophore', 'delta_b', 'color',
+                                             'caspase'])
+        self.refer_to = 'Cas3'
         self.time_diff_cols = []
         self.save_dir = save_dir
 
@@ -69,15 +70,16 @@ class Apop(object):
         else:
             self.df = pd.read_pickle(str(data))
 
-    def load_sensor(self, fluorophore, delta_b, color):
+    def load_sensor(self, fluorophore, delta_b, color, caspase):
         """Load sensors one by one."""
         this_series = pd.Series({'fluorophore': fluorophore,
                                  'delta_b': delta_b,
-                                 'color': color})
+                                 'color': color,
+                                 'caspase': caspase})
         self.sensors = self.sensors.append(this_series, ignore_index=True)
 
     def load_sensors(self, sensors=None, fluorophores=None, delta_bs=None,
-                     colors=None):
+                     colors=None, caspases=None):
         """Load all sensors simultaneously. This overwrites any previous
         sensor loaded. If sensors is given, those are loaded. If not,
         fluorophores, delta_bs and colors need to be given as Iterables.
@@ -90,15 +92,16 @@ class Apop(object):
             df_sensors = pd.DataFrame(sensors)
             if 'fluorophore' in df_sensors.columns and \
                     'delta_b' in df_sensors.columns and \
-                    'color' in df_sensors.columns:
+                    'color' in df_sensors.columns and \
+                    'caspase' in df_sensors.columns:
                 self.sensors = df_sensors
             else:
-                raise ValueError('Either fluorophore, delta_b or color is missing')
+                raise ValueError('Either fluorophore, delta_b, color or caspase is missing')
         else:
-            for this_fluo, this_delta_b, this_color in zip(fluorophores,
-                                                           delta_bs,
-                                                           colors):
-                self.load_sensor(this_fluo, this_delta_b, this_color)
+            for this_fluo, this_delta_b, this_color, this_caspase in zip(
+                    fluorophores, delta_bs, colors, caspases):
+                self.load_sensor(this_fluo, this_delta_b, this_color,
+                                 this_caspase)
 
     def add_window_fit(self, xdata_column='time', ydata_column='anisotropy'):
         """Performs windowed fit over the rows of each fluorophore in the
@@ -248,8 +251,10 @@ class Apop(object):
     def add_activities(self):
         """Adds the activity column for each fluorophore using the found b
         parameter for each row."""
-        for fluo in self.sensors.fluorophore:
-            self.df[name_col(fluo, 'time_activity')], self.df[name_col(fluo, 'activity')] = zip(*self.df.apply(
+        for row in self.sensors.iterrows():
+            fluo = row.fluorophore.values[0]
+            casp = row.caspase.values[0]
+            self.df[name_col(casp, 'time_activity')], self.df[name_col(casp, 'activity')] = zip(*self.df.apply(
                 lambda x: self._calculate_activity(
                     x['time'],
                     x[name_col(fluo, 'anisotropy')],
@@ -259,7 +264,8 @@ class Apop(object):
                 axis=1
             ))
 
-    def add_interpolation(self, new_time_col, time_col, curve_col, all_fluo=False):
+    def add_interpolation(self, new_time_col, time_col, curve_col,
+                          all_fluo=False, all_casp=False):
         """Add an interpolation column.
 
         Parameters
@@ -272,9 +278,12 @@ class Apop(object):
             name of the column with the old data to be interpolated
         all_fluo : bool (optional, default=False)
             If True, adds the fluorophore at the beginning of every column
+        all_casp : bool (optional, default=False)
+            If True, adds the caspase at the beginning of every column
         """
-        if all_fluo:
-            for fluo in self.sensors.fluorophore:
+        if all_fluo or all_casp:
+            names = self.sensors.fluorophore.values if all_fluo else self.sensors.fluorophore.values
+            for fluo in names:
                 fluo_new_time_col = name_col(fluo, new_time_col)
                 fluo_time_col = name_col(fluo, time_col)
                 fluo_curve_col = name_col(fluo, curve_col)
@@ -292,7 +301,7 @@ class Apop(object):
                 axis=1
             )
 
-    def add_times(self, time_col, time_step, all_fluo=False):
+    def add_times(self, time_col, time_step, all_fluo=False, all_casp=False):
         """Generate a new time vector with another time_step.
 
         Parameters
@@ -303,9 +312,12 @@ class Apop(object):
             Time step to be used for the new vector.
         all_fluo : bool (optional, default=False)
             If True, adds the fluorophore at the beginning of every column
+        all_casp : bool (optional, default=False)
+            If True, adds the caspase at the beginning of every column
         """
-        if all_fluo:
-            for fluo in self.sensors.fluorophore:
+        if all_fluo or all_casp:
+            names = self.sensors.fluorophore.values if all_fluo else self.sensors.fluorophore.values
+            for fluo in names:
                 fluo_time_col = name_col(fluo, time_col)
                 self.add_times(fluo_time_col, time_step, all_fluo=False)
 
@@ -320,12 +332,16 @@ class Apop(object):
 
     def add_max_times(self, time_col, curve_col, single_time_col=False):
         """Add the time of the maximum of curve"""
-        for fluo in self.sensors.fluorophore:
+        for row in self.sensors.iterrows():
+            fluo = row.fluorophore.values[0]
+            casp = row.caspase.values[0]
             if single_time_col:
                 this_time_col = time_col
             else:
                 this_time_col = name_col(fluo, time_col)
-            self.df[name_col(fluo, 'max_time')] = self.df.apply(
+                if this_time_col not in self.df.columns:
+                    this_time_col = name_col(casp, time_col)
+            self.df[name_col(casp, 'max_time')] = self.df.apply(
                 lambda x: x[this_time_col][np.argmax(x[name_col(fluo, curve_col)])],
                 axis=1
             )
@@ -334,18 +350,18 @@ class Apop(object):
         """Adds a column with the time differences between max activities.
         refer_to parameter can be used to refer every time to one specific
         sensor"""
-        fluorophores = self.sensors.fluorophore.values
+        caspases = self.sensors.caspase.values
 
         if refer_to:
-            ind = list(fluorophores).index(refer_to)
-            get = fluorophores[ind], fluorophores[-1]
-            fluorophores[-1], fluorophores[ind] = get
+            ind = list(caspases).index(refer_to)
+            get = caspases[ind], caspases[-1]
+            caspases[-1], caspases[ind] = get
 
         self.time_diff_cols = []
-        for fluo1, fluo2 in combinations(fluorophores, 2):
-                self.time_diff_cols.append(name_col(fluo1, 'to', fluo2))
-                self.df[name_col(fluo1, 'to', fluo2)] = self.df.apply(
-                    lambda x: x[name_col(fluo1, 'max_time')] - x[name_col(fluo2, 'max_time')],
+        for casp1, casp2 in combinations(caspases, 2):
+                self.time_diff_cols.append(name_col(casp1, 'to', casp2))
+                self.df[name_col(casp1, 'to', casp2)] = self.df.apply(
+                    lambda x: x[name_col(casp1, 'max_time')] - x[name_col(casp2, 'max_time')],
                     axis=1
                 )
 

@@ -16,11 +16,13 @@ def df_viewer(df, sensors, save_dir):
     class SubPlot(object):
 
         def __init__(self, axs, df_row, sensors,
-                     x_col='time', y_col_suffix='anisotropy'):
+                     x_col='time', y_col_suffix='anisotropy',
+                     y_col_prefix='fluorophore'):
             self.sensors = sensors
             self.axs = axs
             self.x_col = x_col
             self.y_col_suffix = y_col_suffix
+            self.y_col_prefix = y_col_prefix
 
             time = df_row[self.x_col]
             mask = df_row.sigmoid_mask
@@ -29,7 +31,8 @@ def df_viewer(df, sensors, save_dir):
 
             self.lines = []
             for _, sensor_row in sensors.iterrows():
-                this_y = df_row['_'.join([sensor_row.fluorophore, self.y_col_suffix])]
+                this_y = df_row['_'.join([sensor_row[self.y_col_prefix],
+                                          self.y_col_suffix])]
                 l, = self.axs.plot(time, this_y, color=sensor_row.color,
                                    label=sensor_row.fluorophore)
                 self.lines.append(l)
@@ -51,7 +54,8 @@ def df_viewer(df, sensors, save_dir):
             mask = df_row.sigmoid_mask
             for line, (_, sensor_row) in zip(self.lines,
                                              self.sensors.iterrows()):
-                this_y = df_row['_'.join([sensor_row.fluorophore, self.y_col_suffix])]
+                this_y = df_row['_'.join([sensor_row[self.y_col_prefix],
+                                          self.y_col_suffix])]
                 line.set_xdata(time)
                 line.set_ydata(this_y)
 
@@ -107,7 +111,8 @@ def df_viewer(df, sensors, save_dir):
     subplot_anisotropy = SubPlot(axs[0], df.iloc[0], sensors)
     subplot_activity = SubPlot(axs[1], df.iloc[0], sensors,
                       x_col='Cit_time_activity_new',
-                      y_col_suffix='activity_interpolate')
+                      y_col_suffix='activity_interpolate',
+                               y_col_prefix='caspase')
 
     subplot_area = SimpleSubPlot(axs[2], df.iloc[0], x_col='time', y_col='area')
     subplot_solidity = SimpleSubPlot(axs[3], df.iloc[0], x_col='time',
