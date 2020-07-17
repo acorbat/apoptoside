@@ -342,7 +342,7 @@ class Apop(object):
                 if this_time_col not in self.df.columns:
                     this_time_col = name_col(casp, time_col)
             self.df[name_col(casp, 'max_time')] = self.df.apply(
-                lambda x: x[this_time_col][np.argmax(x[name_col(fluo, curve_col)])],
+                lambda x: x[this_time_col][np.argmax(x[name_col(casp, curve_col)])],
                 axis=1
             )
 
