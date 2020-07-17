@@ -251,7 +251,7 @@ class Apop(object):
     def add_activities(self):
         """Adds the activity column for each fluorophore using the found b
         parameter for each row."""
-        for row in self.sensors.iterrows():
+        for n, row in self.sensors.iterrows():
             fluo = row.fluorophore.values[0]
             casp = row.caspase.values[0]
             self.df[name_col(casp, 'time_activity')], self.df[name_col(casp, 'activity')] = zip(*self.df.apply(
@@ -332,7 +332,7 @@ class Apop(object):
 
     def add_max_times(self, time_col, curve_col, single_time_col=False):
         """Add the time of the maximum of curve"""
-        for row in self.sensors.iterrows():
+        for n, row in self.sensors.iterrows():
             fluo = row.fluorophore.values[0]
             casp = row.caspase.values[0]
             if single_time_col:
