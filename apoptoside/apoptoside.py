@@ -3,10 +3,11 @@ from itertools import combinations
 import pandas as pd
 import numpy as np
 
-from . import filter_data as fd
-from . import viewer as vw
-from . import transformation as tf
 from . import anisotropy_functions as af
+from . import filter_data as fd
+from . import transformation as tf
+from .sensors import Sensors
+from . import viewer as vw
 
 
 class Apop(object):
@@ -18,9 +19,8 @@ class Apop(object):
     df : pandas.DataFrame
         pandas DataFrame containing all the data from the experiments and
         analysis performed
-    sensors : pandas.DataFrame
-        pandas DataFrame containing the information regarding the sensors
-        present in the experiment
+    sensors : apoptoside.sensors.Sensors
+        Sensors class containing different Sensor for the experiment
     save_dir : pathlib.Path
         Path object where the modified DataFrame should be saved
 
@@ -70,38 +70,9 @@ class Apop(object):
         else:
             self.df = pd.read_pickle(str(data))
 
-    def load_sensor(self, fluorophore, delta_b, color, caspase):
-        """Load sensors one by one."""
-        this_series = pd.Series({'fluorophore': fluorophore,
-                                 'delta_b': delta_b,
-                                 'color': color,
-                                 'caspase': caspase})
-        self.sensors = self.sensors.append(this_series, ignore_index=True)
-
-    def load_sensors(self, sensors=None, fluorophores=None, delta_bs=None,
-                     colors=None, caspases=None):
-        """Load all sensors simultaneously. This overwrites any previous
-        sensor loaded. If sensors is given, those are loaded. If not,
-        fluorophores, delta_bs and colors need to be given as Iterables.
-
-        sensors: dictionary or Pandas.DataFrame
-            Dictionary or Pandas.Dataframe with all sensors to be loaded.
-        fluorophores, delta_bs and colors: Iterables
-            Iterables with information for every sensor to be loaded."""
-        if sensors is not None:
-            df_sensors = pd.DataFrame(sensors)
-            if 'fluorophore' in df_sensors.columns and \
-                    'delta_b' in df_sensors.columns and \
-                    'color' in df_sensors.columns and \
-                    'caspase' in df_sensors.columns:
-                self.sensors = df_sensors
-            else:
-                raise ValueError('Either fluorophore, delta_b, color or caspase is missing')
-        else:
-            for this_fluo, this_delta_b, this_color, this_caspase in zip(
-                    fluorophores, delta_bs, colors, caspases):
-                self.load_sensor(this_fluo, this_delta_b, this_color,
-                                 this_caspase)
+    def load_sensors(self, path):
+        """Load sensors from file."""
+        self.sensors = Sensors.from_file(path)
 
     def add_window_fit(self, xdata_column='time', ydata_column='anisotropy'):
         """Performs windowed fit over the rows of each fluorophore in the
@@ -115,7 +86,8 @@ class Apop(object):
             Name of the ydata column
         """
 
-        for fluo in self.sensors.fluorophore:
+        for sensor in self.sensors.sensors:
+            fluo = sensor.name
             anis_col = name_col(fluo, ydata_column)
 
             self.df[name_col(fluo, 'sigmoid_popts')] = self.df.apply(
@@ -138,7 +110,8 @@ class Apop(object):
     def filter_non_apoptotic(self):
         """Adds a columnof bools specifying whther the row has any apoptotic
         region"""
-        for fluo in self.sensors.fluorophore:
+        for sensor in self.sensors.sensors:
+            fluo = sensor.name
             self.df[fluo + '_apoptotic'] = self.df[
                 name_col(fluo, 'sigmoid_popts')].apply(
                 lambda x: any([fd.is_apoptotic(*popt) for popt in x]))
@@ -153,15 +126,15 @@ class Apop(object):
             if True, only curves with apoptotic regions are shown.
         """
         if skip_non_apoptotic:
-            apoptotic_columns = [fluo + '_apoptotic'
-                                 for fluo in self.sensors.fluorophore]
+            apoptotic_columns = [sensor.name + '_apoptotic'
+                                 for sensor in self.sensors.sensors]
             if not all([col in self.df.columns for col in apoptotic_columns]):
                 print('filter_non_apoptotic method has not been run on '
                       'DataFrame.')
                 return
 
-            condition = ' and '.join([fluo + '_apoptotic'
-                                      for fluo in self.sensors.fluorophore])
+            condition = ' and '.join([sensor.name + '_apoptotic'
+                                      for sensor in self.sensors.sensors])
             vw.df_viewer(self.df.query(condition), self.sensors, self.save_dir)
 
         else:
@@ -204,7 +177,8 @@ class Apop(object):
         estimator : string (optional, default='mean')
             Which statistical estimator to use
         """
-        for fluo in self.sensors.fluorophore:
+        for sensor in self.sensors.sensors:
+            fluo = sensor.name
             for orientation in ['parallel', 'perpendicular']:
                 self.estimate_pre_and_pos(name_col(fluo, orientation, estimator))
 
@@ -218,7 +192,8 @@ class Apop(object):
         col_end : string
             ending of the column name to use
         """
-        for fluo in self.sensors.fluorophore:
+        for sensor in self.sensors.sensors:
+            fluo = sensor.name
             self.df[name_col(fluo, 'fluo', col_end)] = self.df.apply(
                 lambda x: af.Fluos_FromInt(
                     x[name_col(fluo, 'parallel', col_end)],
@@ -236,12 +211,14 @@ class Apop(object):
             If True, b is set from sensors dictionary
         """
         if fix_b:
-            for fluo in self.sensors.fluorophore:
+            for sensor in self.sensors.sensors:
+                fluo = sensor.name
                 self.df['_'.join([fluo, 'delta_b'])] = \
                 self.sensors.query('fluorophore == "%s"' % fluo).delta_b.values[0]
 
         else:
-            for fluo in self.sensors.fluorophore:
+            for sensor in self.sensors.sensors:
+                fluo = sensor.name
                 self.df[name_col(fluo, 'delta_b')] = self.df.apply(
                     lambda x: tf.estimate_delta_b(
                         x[name_col(fluo, 'fluo', estimator, 'pre')],
@@ -251,9 +228,9 @@ class Apop(object):
     def add_activities(self):
         """Adds the activity column for each fluorophore using the found b
         parameter for each row."""
-        for n, row in self.sensors.iterrows():
-            fluo = row.fluorophore
-            casp = row.caspase
+        for sensor in self.sensors.sensors:
+            fluo = sensor.name
+            casp = sensor.enzyme
             self.df[name_col(casp, 'time_activity')], self.df[name_col(casp, 'activity')] = zip(*self.df.apply(
                 lambda x: self._calculate_activity(
                     x['time'],
@@ -282,7 +259,9 @@ class Apop(object):
             If True, adds the caspase at the beginning of every column
         """
         if all_fluo or all_casp:
-            names = self.sensors.fluorophore.values if all_fluo else self.sensors.fluorophore.values
+            names = [sensor.name if all_fluo else sensor.enzyme
+                     for sensor in self.sensors.sensors]
+
             for fluo in names:
                 fluo_new_time_col = name_col(fluo, new_time_col)
                 fluo_time_col = name_col(fluo, time_col)
@@ -316,7 +295,9 @@ class Apop(object):
             If True, adds the caspase at the beginning of every column
         """
         if all_fluo or all_casp:
-            names = self.sensors.fluorophore.values if all_fluo else self.sensors.fluorophore.values
+            names = [sensor.name if all_fluo else sensor.enzyme
+                     for sensor in self.sensors.sensors]
+
             for fluo in names:
                 fluo_time_col = name_col(fluo, time_col)
                 self.add_times(fluo_time_col, time_step, all_fluo=False)
@@ -332,9 +313,9 @@ class Apop(object):
 
     def add_max_times(self, time_col, curve_col, single_time_col=False):
         """Add the time of the maximum of curve"""
-        for n, row in self.sensors.iterrows():
-            fluo = row.fluorophore
-            casp = row.caspase
+        for sensor in self.sensors.sensors:
+            fluo = sensor.name
+            casp = sensor.enzyme
             if single_time_col:
                 this_time_col = time_col
             else:
@@ -350,7 +331,7 @@ class Apop(object):
         """Adds a column with the time differences between max activities.
         refer_to parameter can be used to refer every time to one specific
         sensor"""
-        caspases = self.sensors.caspase.values
+        caspases = [sensor.enzyme for sensor in self.sensors.sensors]
 
         if refer_to:
             ind = list(caspases).index(refer_to)

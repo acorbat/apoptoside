@@ -17,7 +17,7 @@ def df_viewer(df, sensors, save_dir):
 
         def __init__(self, axs, df_row, sensors,
                      x_col='time', y_col_suffix='anisotropy',
-                     y_col_prefix='fluorophore'):
+                     y_col_prefix='name'):
             self.sensors = sensors
             self.axs = axs
             self.x_col = x_col
@@ -30,11 +30,11 @@ def df_viewer(df, sensors, save_dir):
             plt.sca(self.axs)
 
             self.lines = []
-            for _, sensor_row in sensors.iterrows():
-                this_y = df_row['_'.join([sensor_row[self.y_col_prefix],
+            for sensor in sensors.sensors:
+                this_y = df_row['_'.join([getattr(sensor, self.y_col_prefix),
                                           self.y_col_suffix])]
-                l, = self.axs.plot(time, this_y, color=sensor_row.color,
-                                   label=sensor_row.fluorophore)
+                l, = self.axs.plot(time, this_y, color=sensor.color,
+                                   label=sensor.name)
                 self.lines.append(l)
 
             plt.legend()
@@ -52,9 +52,9 @@ def df_viewer(df, sensors, save_dir):
             plt.sca(self.axs)
             time = df_row[self.x_col]
             mask = df_row.sigmoid_mask
-            for line, (_, sensor_row) in zip(self.lines,
-                                             self.sensors.iterrows()):
-                this_y = df_row['_'.join([sensor_row[self.y_col_prefix],
+            for line, sensor in zip(self.lines,
+                                             self.sensors.sensors):
+                this_y = df_row['_'.join([getattr(sensor, self.y_col_prefix),
                                           self.y_col_suffix])]
                 line.set_xdata(time)
                 line.set_ydata(this_y)
@@ -112,7 +112,7 @@ def df_viewer(df, sensors, save_dir):
     subplot_activity = SubPlot(axs[1], df.iloc[0], sensors,
                       x_col='Cit_time_activity_new',
                       y_col_suffix='activity_interpolate',
-                               y_col_prefix='caspase')
+                               y_col_prefix='enzyme')
 
     subplot_area = SimpleSubPlot(axs[2], df.iloc[0], x_col='time', y_col='area')
     subplot_solidity = SimpleSubPlot(axs[3], df.iloc[0], x_col='time',
@@ -232,10 +232,10 @@ def view_curves(axs, df_row, sensors, lines=None, fill=None):
         plt.sca(axs)
 
         lines = []
-        for _, sensor_row in sensors.iterrows():
-            anis = df_row[sensor_row.fluorophore + '_anisotropy']
-            l, = axs.plot(time, anis, color=sensor_row.color,
-                          label=sensor_row.fluorophore)
+        for sensor in sensors.sensors:
+            anis = df_row[sensor.name + '_anisotropy']
+            l, = axs.plot(time, anis, color=sensor.color,
+                          label=sensor.name)
             lines.append(l)
 
         plt.legend()
@@ -250,8 +250,8 @@ def view_curves(axs, df_row, sensors, lines=None, fill=None):
         return lines, fill
 
     else:
-        for line, (_, sensor_row) in zip(lines, sensors.iterrows()):
-            anis = df_row[sensor_row.fluorophore + '_anisotropy']
+        for line, sensor in zip(lines, sensors.sensors):
+            anis = df_row[sensor.name + '_anisotropy']
             line.set_xdata(time)
             line.set_ydata(anis)
 
@@ -265,9 +265,9 @@ def view_curves(axs, df_row, sensors, lines=None, fill=None):
 
 def plot_delta_b_histogram(df, sensors):
     """Plots an histogram for the delta b in the df. Must have a 'b' column"""
-    for _, sensor_row in sensors.iterrows():
-        fluo = sensor_row.fluorophore
-        color = sensor_row.color
+    for sensor in sensors.sensors:
+        fluo = sensor.name
+        color = sensor.color
         b_values = df[fluo + '_delta_b'].values
         b_values = b_values[np.isfinite(b_values)]
 
