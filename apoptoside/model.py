@@ -6,6 +6,7 @@ from tqdm import tqdm
 
 from caspase_model.shared import observe_biosensors
 from . import anisotropy_functions as af
+from .sensors import Sensors
 
 
 class Model(object):
@@ -25,13 +26,14 @@ class Model(object):
         self.initial_conditions = self.get_initial_conditions()
         self.rates = self.get_rates()
         self.time = np.arange(0, 40000, 1)
-        self.sensors = pd.DataFrame(columns=['fluorophore',
-                                             'anisotropy_monomer',
-                                             'anisotropy_monomer',
-                                             'b', 'color', 'caspase'])
+        self.sensors = None
         self.paramsweep = pd.DataFrame(columns=['parameter', 'min_value',
                                        'max_value', 'correlation'])
         observe_biosensors()  # This way observables are only defined at init
+
+    def load_sensors(self, path):
+        """Load sensors from file."""
+        self.sensors = Sensors.from_file(path)
 
     def get_initial_conditions(self):
         """Generates a list of initial conditions (actually parameters in model
@@ -62,11 +64,11 @@ class Model(object):
         monomer curves and parameters of biosensors."""
         simres = self.get_monomer_curves()
         anis_curves = {}
-        for row, this_sensor in self.sensors.iterrows():
-            fluo = this_sensor.fluorophore
-            anisotropy_monomer = this_sensor.anisotropy_monomer
-            anisotropy_dimer = this_sensor.anisotropy_dimer
-            b = 1 + this_sensor.delta_b
+        for sensor in self.sensors.sensors:
+            fluo = sensor.name
+            anisotropy_monomer = sensor.anisotropy_monomer
+            anisotropy_dimer = sensor.anisotropy_dimer
+            b = 1 + sensor.delta_b
 
             dimer_curve = simres[fluo + '_dimer']
             monomer_curve = simres[fluo + '_monomer']
@@ -150,7 +152,8 @@ class Model(object):
             param = correlated_param.parameter
             params[param] = params[correlated_to].values * correlation_val
 
-        for fluo in self.sensors.fluorophore.values:
+        for sensor in self.sensors.sensors:
+            fluo = sensor.name
             params[fluo + '_anisotropy'] = [[np.nan], ] * len(params)
 
         for row, param_set in tqdm(params.iterrows(), total=(len(params))):
@@ -159,7 +162,8 @@ class Model(object):
                     continue
                 self.model.parameters[param_name].value = param_val
             anis_curves = self.get_anisotropy_curves()
-            for fluo in self.sensors.fluorophore.values:
+            for sensor in self.sensors.sensors:
+                fluo = sensor.name
                 params.at[row, fluo + '_anisotropy'] = anis_curves[fluo]
 
         return params
