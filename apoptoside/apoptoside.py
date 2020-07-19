@@ -72,7 +72,7 @@ class Apop(object):
 
     def load_sensors(self, path):
         """Load sensors from file."""
-        self.sensors = Sensors.from_file(path)
+        self.sensors = Sensors.from_filename(path)
 
     def add_window_fit(self, xdata_column='time', ydata_column='anisotropy'):
         """Performs windowed fit over the rows of each fluorophore in the

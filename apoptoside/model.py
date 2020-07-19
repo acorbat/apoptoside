@@ -33,7 +33,7 @@ class Model(object):
 
     def load_sensors(self, path):
         """Load sensors from file."""
-        self.sensors = Sensors.from_file(path)
+        self.sensors = Sensors.from_filename(path)
 
     def get_initial_conditions(self):
         """Generates a list of initial conditions (actually parameters in model
