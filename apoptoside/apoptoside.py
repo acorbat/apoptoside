@@ -213,8 +213,7 @@ class Apop(object):
         if fix_b:
             for sensor in self.sensors.sensors:
                 fluo = sensor.name
-                self.df['_'.join([fluo, 'delta_b'])] = \
-                self.sensors.query('fluorophore == "%s"' % fluo).delta_b.values[0]
+                self.df['_'.join([fluo, 'delta_b'])] = sensor.delta_b
 
         else:
             for sensor in self.sensors.sensors:
