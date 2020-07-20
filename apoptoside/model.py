@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from pyDOE import lhs
+import pysb
 from pysb.simulator import ScipyOdeSimulator
 from tqdm import tqdm
 
@@ -29,7 +30,10 @@ class Model(object):
         self.sensors = None
         self.paramsweep = pd.DataFrame(columns=['parameter', 'min_value',
                                        'max_value', 'correlation'])
-        observe_biosensors()  # This way observables are only defined at init
+        try:
+            observe_biosensors()
+        except pysb.ComponentDuplicateNameError:
+            pass
 
     def load_sensors(self, path):
         """Load sensors from file."""
