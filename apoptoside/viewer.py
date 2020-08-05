@@ -110,18 +110,20 @@ def df_viewer(df, sensors, save_dir):
 
     subplot_anisotropy = SubPlot(axs[0], df.iloc[0], sensors)
     subplot_activity = SubPlot(axs[1], df.iloc[0], sensors,
-                      x_col='Cit_time_activity_new',
+                      x_col='Cas3_time_activity_new',
                       y_col_suffix='activity_interpolate',
                                y_col_prefix='enzyme')
-
     subplot_area = SimpleSubPlot(axs[2], df.iloc[0], x_col='time', y_col='area')
-    subplot_solidity = SimpleSubPlot(axs[3], df.iloc[0], x_col='time',
-                                 y_col='solidity')
 
     subplots = [subplot_anisotropy,
                 subplot_activity,
-                subplot_area,
-                subplot_solidity]
+                subplot_area]
+
+    if 'solidity' in df.columns:
+        subplot_solidity = SimpleSubPlot(axs[3], df.iloc[0], x_col='time',
+                                     y_col='solidity')
+
+        subplots.append(subplot_solidity)
 
     class Index(object):
 
