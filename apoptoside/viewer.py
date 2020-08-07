@@ -7,11 +7,19 @@ from scipy import stats
 
 
 def df_viewer(df, sensors, save_dir):
+    print('You can view %d curves' % len(df))
 
-    fig, axs = plt.subplots(5, 1,
-                            figsize=(8, 10),
-                            gridspec_kw={'height_ratios': [5, 5, 5, 5, 1]},
-                            sharex=True)
+    if 'solidity' in df.columns:
+        fig, axs = plt.subplots(5, 1,
+                                figsize=(8, 10),
+                                gridspec_kw={'height_ratios': [5, 5, 5, 5, 1]},
+                                sharex=True)
+    else:
+        fig, axs = plt.subplots(4, 1,
+                                figsize=(8, 10),
+                                gridspec_kw={'height_ratios': [5, 5, 5, 1]},
+                                sharex=True)
+    plt.subplots_adjust(hspace=0)
 
     class SubPlot(object):
 
@@ -72,10 +80,13 @@ def df_viewer(df, sensors, save_dir):
         def set_title(self, df_row):
             ind = df_row.name
             date = df_row.date
+            pos = df_row.position
+            label = df_row.label
             drug = df_row.drug
             plasmid = df_row.plasmid
-            self.axs.set_title('index: %s; date: %s; drug: %s; plasmid: %s' %
-                               (ind, date, drug, plasmid))
+            self.axs.set_title('index: %s; date: %s; drug: %s; \n '
+                               'position: %d; label: %d; plasmid: %s' %
+                               (ind, date, drug, pos, label, plasmid))
 
     class SimpleSubPlot(object):
 
