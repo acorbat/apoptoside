@@ -340,3 +340,67 @@ def make_report(pdf_dir, df, sensors, hue=None, cols=["BFP_to_Cit", "BFP_to_Kate
         plot_histogram_2d(df, sensors, cols=cols, kind='scatter', hue=hue)
         pp.savefig()
         plt.close()
+
+
+def get_level_for_kde(x, y, level):
+    """Estimates the level that includes the percentage of data points
+    wanted."""
+    kde = stats.gaussian_kde([x, y])
+    probs = kde.pdf([x, y])
+    arr = np.asarray([x, y, probs]).T
+    arr = arr[arr[:, 2].argsort()]
+    ind = np.ceil(len(x) * level).astype(int)
+    return arr[ind, 2]
+
+
+def get_levels_for_kde(x, y, levels):
+    """Estimates the levels that include the percentages of data points
+    wanted."""
+    vals = []
+    for level in levels:
+        val = get_level_for_kde(x, y, level)
+        vals.append(val)
+    return vals
+
+
+def plot_kde(x, y, g, cmap='Blues_d', label=None, gridsize=60,
+             levels=(0.34, 0.68)):
+    """Plots a single kde plot with marginal dist plots on JointGrig g."""
+    sns.kdeplot(x, y, cmap=cmap, alpha=0.6,
+                levels=get_levels_for_kde(x, y, levels),
+                ax=g.ax_joint, label=label)
+
+    sns.distplot(x, kde=False, bins=gridsize, ax=g.ax_marg_x)
+    sns.distplot(y, kde=False, bins=gridsize, ax=g.ax_marg_y,
+                 vertical=True)
+
+
+def plot_kdes(df, x_col, y_col, hue=None, xlim=(-20, 40), ylim=(-20, 40),
+              cmaps=None, labels=None, gridsizes=None, levels=(0.34, 0.68)):
+    """Generates a JointGrid plot and makes de kde plots."""
+    g = sns.JointGrid(data=df, x=x_col, y=y_col,
+                      xlim=xlim, ylim=ylim)
+
+    if hue is None:
+        plot_kde(df[x_col].values, df[y_col].values, g, cmap=cmaps, label=labels,
+                 gridsize=gridsizes)
+    else:
+        for (this_var, this_df), this_cmap,  gridsize in zip(
+                df.groupby(hue),
+                cmaps,
+                gridsizes):
+            plot_kde(this_df[x_col].values, this_df[y_col].values, g,
+                     cmap=this_cmap, label=this_var, gridsize=gridsize,
+                     levels=levels)
+
+    return g
+
+
+def add_experimental_noise(times, cov=None):
+    """Add correlated experimental noise to time differences."""
+    if cov is None:
+        cov = np.array([[27.4241789, 2.48916841], [2.48916841, 21.80573026]])
+        cov *= 0.75
+
+    times += np.random.multivariate_normal([0, 0], cov, times.shape[0])
+    return times
