@@ -81,12 +81,14 @@ def fill_in_curves(time, curve, smooth=False):
     end = np.nanmax(time)
     time_step = np.nanmin(np.diff(time))
     complete_time = np.arange(start, end, time_step)
+    nan_mask = np.isfinite(time) & np.isfinite(curve)
 
     if not smooth:
         complete_curve = np.interp(complete_time, time, curve,
                                    left=curve[0], right=curve[0])
     else:
-        complete_curve = interpolate(complete_time, time, curve)
+        complete_curve = interpolate(complete_time, time[nan_mask], 
+                                     curve[nan_mask])
 
     return complete_time, complete_curve
 
