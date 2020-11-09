@@ -367,7 +367,8 @@ def plot_kde(x, y, g, cmap='Blues_d', label=None, gridsize=60,
              levels=(0.34, 0.68)):
     """Plots a single kde plot with marginal dist plots on JointGrig g."""
     sns.kdeplot(x, y, cmap=cmap, alpha=0.6,
-                levels=get_levels_for_kde(x, y, levels),
+                # levels from seaborn now uses probability mass
+                levels=levels,  # get_levels_for_kde(x, y, levels),
                 ax=g.ax_joint, label=label)
 
     sns.distplot(x, kde=False, bins=gridsize, ax=g.ax_marg_x)
