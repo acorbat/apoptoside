@@ -2,7 +2,9 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import RectangleSelector, Button
 from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
+import pandas as pd
 import seaborn as sns
+from seaborn._statistics import KDE
 from scipy import stats
 
 
@@ -342,7 +344,7 @@ def make_report(pdf_dir, df, sensors, hue=None, cols=["BFP_to_Cit", "BFP_to_Kate
         plt.close()
 
 
-def get_level_for_kde(x, y, level):
+def old_get_level_for_kde(x, y, level):
     """Estimates the level that includes the percentage of data points
     wanted."""
     kde = stats.gaussian_kde([x, y])
@@ -353,6 +355,37 @@ def get_level_for_kde(x, y, level):
     return arr[ind, 2]
 
 
+def level_to_quantile(data, level):
+    isoprop = np.asarray(level)
+    values = np.ravel(data)
+    sorted_values = np.sort(values)
+    idx = np.searchsorted(sorted_values, isoprop)
+
+    normalized_values = np.cumsum(sorted_values) / values.sum()
+    quantile = np.take(normalized_values, idx, mode="clip")
+
+    return quantile
+
+
+def get_level_for_kde(xs, ys, percentage):
+    data = pd.DataFrame(np.array([xs, ys]).T, columns=['x', 'y'])
+    sns_kde = KDE()
+    my_kde = sns_kde._fit([data['x'].values, data['y'].values], None)
+    data['kde'] = my_kde.evaluate([data.x.values, data.y.values])
+    data.sort_values(by='kde', inplace=True, ascending=False,
+                     ignore_index=True)
+    ind = np.floor(len(data) * percentage)
+    if ind > 0:
+        ind -= 1
+    else:
+        print('index obtained was lower than one observation.')
+    level = data.loc[ind].kde
+
+    density, _ = sns_kde(x1=xs, x2=ys)
+    quantile = level_to_quantile(density, level)
+    return quantile
+
+
 def get_levels_for_kde(x, y, levels):
     """Estimates the levels that include the percentages of data points
     wanted."""
@@ -360,7 +393,7 @@ def get_levels_for_kde(x, y, levels):
     for level in levels:
         val = get_level_for_kde(x, y, level)
         vals.append(val)
-    return vals
+    return np.sort(vals)
 
 
 def plot_kde(x, y, g, cmap='Blues_d', label=None, gridsize=60,
@@ -368,7 +401,7 @@ def plot_kde(x, y, g, cmap='Blues_d', label=None, gridsize=60,
     """Plots a single kde plot with marginal dist plots on JointGrig g."""
     sns.kdeplot(x, y, cmap=cmap, alpha=0.6,
                 # levels from seaborn now uses probability mass
-                levels=levels,  # get_levels_for_kde(x, y, levels),
+                levels=get_levels_for_kde(x, y, levels),
                 ax=g.ax_joint, label=label)
 
     sns.distplot(x, kde=False, bins=gridsize, ax=g.ax_marg_x)
@@ -377,10 +410,11 @@ def plot_kde(x, y, g, cmap='Blues_d', label=None, gridsize=60,
 
 
 def plot_kdes(df, x_col, y_col, hue=None, xlim=(-20, 40), ylim=(-20, 40),
-              cmaps=None, labels=None, gridsizes=None, levels=(0.34, 0.68)):
+              cmaps=None, labels=None, gridsizes=None, levels=(0.34, 0.68),
+              height=6):
     """Generates a JointGrid plot and makes de kde plots."""
     g = sns.JointGrid(data=df, x=x_col, y=y_col,
-                      xlim=xlim, ylim=ylim)
+                      xlim=xlim, ylim=ylim, height=height)
 
     if hue is None:
         plot_kde(df[x_col].values, df[y_col].values, g, cmap=cmaps, label=labels,
