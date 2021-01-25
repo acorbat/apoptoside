@@ -78,18 +78,18 @@ class Model(object):
             dimer_curve = simres[fluo + '_dimer']
             monomer_curve = simres[fluo + '_monomer']
 
-            # Check whether all dimer has transformed into monomer
-            anis_state[fluo] = True
-            if (2 * dimer_curve.max() - monomer_curve.max() ) / monomer_curve.max()> 1e-4:
-                print('Not all dimer was cleaved!')
-                anis_state[fluo] = False
-
             m_curve = monomer_curve / monomer_curve.max()
 
             anisotropy = af.anisotropy_from_monomer(m_curve,
                                                     anisotropy_monomer,
                                                     anisotropy_dimer,
                                                     b)
+
+            # Check whether all dimer has transformed into monomer
+            anis_state[fluo] = True
+            if np.abs(anisotropy[-1] - anisotropy_monomer) > 1e-5:
+                print('Not all dimer was cleaved!')
+                anis_state[fluo] = False
 
             anis_curves[fluo] = anisotropy
 
