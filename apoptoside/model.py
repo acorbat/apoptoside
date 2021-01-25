@@ -87,7 +87,7 @@ class Model(object):
 
             # Check whether all dimer has transformed into monomer
             anis_state[fluo] = True
-            if np.abs(anisotropy[-1] - anisotropy_monomer) > 1e-5:
+            if np.abs(anisotropy[-1] - anisotropy_monomer) > 1e-8:
                 print('Not all dimer was cleaved!')
                 anis_state[fluo] = False
 
