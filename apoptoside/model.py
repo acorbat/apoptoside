@@ -68,6 +68,7 @@ class Model(object):
         monomer curves and parameters of biosensors."""
         simres = self.get_monomer_curves()
         anis_curves = {}
+        anis_state = {}
         for sensor in self.sensors.sensors:
             fluo = sensor.name
             anisotropy_monomer = sensor.anisotropy_monomer
@@ -78,8 +79,10 @@ class Model(object):
             monomer_curve = simres[fluo + '_monomer']
 
             # Check whether all dimer has transformed into monomer
+            anis_state[fluo] = True
             if (2 * dimer_curve.max() - monomer_curve.max() ) / monomer_curve.max()> 1e-4:
                 print('Not all dimer was cleaved!')
+                anis_state[fluo] = False
 
             m_curve = monomer_curve / monomer_curve.max()
 
@@ -90,7 +93,7 @@ class Model(object):
 
             anis_curves[fluo] = anisotropy
 
-        return anis_curves
+        return anis_curves, anis_state
 
     def add_parameter_sweep(self, parameter_name, min_value, max_value,
                             correlation='uncorrelated'):
@@ -165,9 +168,11 @@ class Model(object):
                 if 'anisotropy' in param_name:
                     continue
                 self.model.parameters[param_name].value = param_val
-            anis_curves = self.get_anisotropy_curves()
+            anis_curves, anis_state = self.get_anisotropy_curves()
             for sensor in self.sensors.sensors:
                 fluo = sensor.name
+                cas = sensor.enzyme
                 params.at[row, fluo + '_anisotropy'] = anis_curves[fluo]
+                params.at[row, cas + '_cleaved'] = anis_state[fluo]
 
         return params
