@@ -356,6 +356,16 @@ def old_get_level_for_kde(x, y, level):
     return arr[ind, 2]
 
 
+def old_get_levels_for_kde(x, y, levels):
+    """Estimates the levels that include the percentages of data points
+    wanted."""
+    vals = []
+    for level in levels:
+        val = old_get_level_for_kde(x, y, level)
+        vals.append(val)
+    return np.sort(vals)
+
+
 def level_to_quantile(data, level):
     isoprop = np.asarray(level)
     values = np.ravel(data)
@@ -398,7 +408,7 @@ def get_levels_for_kde(x, y, levels):
 
 
 def plot_kde(x, y, g, cmap='Blues_d', label=None, gridsize=60, kind='hist',
-             levels=(0.34, 0.68)):
+             levels=(0.34, 0.68), level_func='new'):
     """Plots a single kde plot with marginal dist plots on JointGrig g."""
 
     alpha = 0.3
@@ -417,16 +427,23 @@ def plot_kde(x, y, g, cmap='Blues_d', label=None, gridsize=60, kind='hist',
         sns.kdeplot(y=y, gridsize=gridsize, common_norm=True, fill=True,
                     color=this_color, ax=g.ax_marg_y, alpha=alpha)
 
+    if level_func is None:
+        def level_func(x, y, levels):
+            return levels
+    elif level_func == "old":
+        level_func = old_get_levels_for_kde
+    elif level_func == "new":
+        level_func = get_levels_for_kde
 
     sns.kdeplot(x=x, y=y, cmap=cmap, alpha=0.9,
                 # levels from seaborn now uses probability mass
-                levels=get_levels_for_kde(x, y, levels),
+                levels=level_func(x, y, levels),
                 ax=g.ax_joint, label=label, vmin=10 ** (-4), vmax=10 ** (-2.5))
 
 
 def plot_kdes(df, x_col, y_col, hue=None, xlim=(-20, 40), ylim=(-20, 40),
               cmaps=None, labels=None, gridsizes=None, kinds=None,
-              levels=(0.34, 0.68), height=6):
+              levels=(0.34, 0.68), height=6, level_func=None):
     """Generates a JointGrid plot and makes de kde plots."""
     g = sns.JointGrid(data=df, x=x_col, y=y_col,
                       xlim=xlim, ylim=ylim, height=height)
@@ -441,7 +458,7 @@ def plot_kdes(df, x_col, y_col, hue=None, xlim=(-20, 40), ylim=(-20, 40),
                 gridsizes, kinds):
             plot_kde(this_df[x_col].values, this_df[y_col].values, g,
                      cmap=this_cmap, label=this_var, gridsize=gridsize,
-                     kind=kind, levels=levels)
+                     kind=kind, levels=levels, level_func=level_func)
 
     return g
 
