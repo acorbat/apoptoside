@@ -408,20 +408,21 @@ def get_levels_for_kde(x, y, levels):
 
 
 def plot_kde(x, y, g, cmap='Blues_d', label=None, gridsize=60, kind='hist',
-             levels=(0.34, 0.68), level_func='new'):
+             levels=(0.34, 0.68), level_func='new', vmin=None, vmax=None,
+             fill=False, lw=1):
     """Plots a single kde plot with marginal dist plots on JointGrig g."""
-
-    alpha = 0.3
 
     this_map = matplotlib.cm.get_cmap(cmap)
     this_color = this_map(0.7)
     if kind == 'hist':
-        sns.histplot(x=x, bins=gridsize, stat='density', color=this_color,
-                     ax=g.ax_marg_x, alpha=alpha)
-        sns.histplot(y=y, bins=gridsize, stat='density', color=this_color,
-                     ax=g.ax_marg_y, alpha=alpha)
+        alpha = 0
+        sns.histplot(x=x, bins=gridsize, stat='density', edgecolor=this_color,
+                     ax=g.ax_marg_x, alpha=alpha, linewidth=2)
+        sns.histplot(y=y, bins=gridsize, stat='density', edgecolor=this_color,
+                     ax=g.ax_marg_y, alpha=alpha, linewidth=2)
 
     elif kind == 'kde':
+        alpha = 0.4
         sns.kdeplot(x=x, gridsize=gridsize, common_norm=True, fill=True,
                     color=this_color, ax=g.ax_marg_x, alpha=alpha)
         sns.kdeplot(y=y, gridsize=gridsize, common_norm=True, fill=True,
@@ -435,15 +436,24 @@ def plot_kde(x, y, g, cmap='Blues_d', label=None, gridsize=60, kind='hist',
     elif level_func == "new":
         level_func = get_levels_for_kde
 
-    sns.kdeplot(x=x, y=y, cmap=cmap, alpha=0.9,
+    if vmin is None:
+        vmin = 10 ** (-4)
+
+    if vmax is None:
+        vmax = 10 ** (-2.5)
+
+    alpha = 0.9 if kind == 'hist' else 0.4
+    sns.kdeplot(x=x, y=y, cmap=cmap, alpha=alpha,
                 # levels from seaborn now uses probability mass
                 levels=level_func(x, y, levels),
-                ax=g.ax_joint, label=label, vmin=10 ** (-4), vmax=10 ** (-2.5))
+                ax=g.ax_joint, label=label, vmin=vmin, vmax=vmax, shade=fill,
+                linewidths=lw)
 
 
 def plot_kdes(df, x_col, y_col, hue=None, xlim=(-20, 40), ylim=(-20, 40),
               cmaps=None, labels=None, gridsizes=None, kinds=None,
-              levels=(0.34, 0.68), height=6, level_func=None):
+              levels=(0.34, 0.68), height=6, level_func=None,
+              vmins=None, vmaxs=None, levelss=None, fills=False, lws=None):
     """Generates a JointGrid plot and makes de kde plots."""
     g = sns.JointGrid(data=df, x=x_col, y=y_col,
                       xlim=xlim, ylim=ylim, height=height)
@@ -452,13 +462,14 @@ def plot_kdes(df, x_col, y_col, hue=None, xlim=(-20, 40), ylim=(-20, 40),
         plot_kde(df[x_col].values, df[y_col].values, g, cmap=cmaps, label=labels,
                  gridsize=gridsizes)
     else:
-        for (this_var, this_df), this_cmap,  gridsize, kind in zip(
+        for (this_var, this_df), this_cmap,  gridsize, kind, vmin, vmax, levels, fill, lw in zip(
                 df.groupby(hue),
                 cmaps,
-                gridsizes, kinds):
+                gridsizes, kinds, vmins, vmaxs, levelss, fills, lws):
             plot_kde(this_df[x_col].values, this_df[y_col].values, g,
                      cmap=this_cmap, label=this_var, gridsize=gridsize,
-                     kind=kind, levels=levels, level_func=level_func)
+                     kind=kind, levels=levels, level_func=level_func,
+                     vmin=vmin, vmax=vmax, fill=fill, lw=lw)
 
     return g
 
