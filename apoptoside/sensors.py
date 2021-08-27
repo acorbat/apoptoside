@@ -1,17 +1,17 @@
 from typing import List, Tuple
-from datastruct import DataStruct
+from pydantic import BaseModel
 
 
-class Sensor(DataStruct):
+class Sensor(BaseModel):
     name: str
     enzyme: str
-    color: Tuple[float]
+    color: Tuple[float, float, float]
     anisotropy_monomer: float
     anisotropy_dimer: float
     delta_b: float
 
 
-class Sensors(DataStruct):
+class Sensors(BaseModel):
     sensors: List[Sensor]
 
     def __sum__(self, item):

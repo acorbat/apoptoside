@@ -12,11 +12,10 @@ from .sensors import Sensors
 
 class Model(object):
     """Model class contains all the parameters to be used in a simulation of
-    an experiment. It know which model to use for the apoptotic network, the
+    an experiment. It knows which model to use for the apoptotic network, the
     stimuli should be specified as intrinsic or extrinsic will be used as
     default. A biosensor DataFrame should be given in order to estimate
     anisotropy curves. Time vector can be changed if necessary.
-
     """
     def __init__(self, model, **kwargs):
         try:
@@ -37,7 +36,7 @@ class Model(object):
 
     def load_sensors(self, path):
         """Load sensors from file."""
-        self.sensors = Sensors.from_filename(path)
+        self.sensors = Sensors.parse_file(path)
 
     def get_initial_conditions(self):
         """Generates a list of initial conditions (actually parameters in model
@@ -71,19 +70,23 @@ class Model(object):
         anis_state = {}
         for sensor in self.sensors.sensors:
             fluo = sensor.name
+            cas = sensor.enzyme
             anisotropy_monomer = sensor.anisotropy_monomer
             anisotropy_dimer = sensor.anisotropy_dimer
             b = 1 + sensor.delta_b
 
-            dimer_curve = simres[fluo + '_dimer']
-            monomer_curve = simres[fluo + '_monomer']
+            dimer_curve = simres['s' + cas + '_dimer']
+            monomer_curve = simres['s' + cas + '_monomer']
 
-            m_curve = monomer_curve / monomer_curve.max()
+            if monomer_curve.max() == 0:
+                anisotropy = np.array([anisotropy_dimer] * len(monomer_curve))
+            else:
+                m_curve = monomer_curve / monomer_curve.max()
 
-            anisotropy = af.anisotropy_from_monomer(m_curve,
-                                                    anisotropy_monomer,
-                                                    anisotropy_dimer,
-                                                    b)
+                anisotropy = af.anisotropy_from_monomer(m_curve,
+                                                        anisotropy_monomer,
+                                                        anisotropy_dimer,
+                                                        b)
 
             # Check whether all dimer has transformed into monomer
             anis_state[fluo] = True
