@@ -29,6 +29,8 @@ class Model(object):
         self.sensors = None
         self.paramsweep = pd.DataFrame(columns=['parameter', 'min_value',
                                        'max_value', 'correlation'])
+        self.simulator = None
+        self.sim_batch_size = 1
         try:
             observe_biosensors()
         except pysb.ComponentDuplicateNameError:
@@ -57,9 +59,11 @@ class Model(object):
                 rates.append(param.name)
         return rates
 
-    def get_monomer_curves(self):
+    def get_monomer_curves(self, params=None):
         """Simulates model with given parameters and returns monomer curves."""
-        simres = ScipyOdeSimulator(self.model, tspan=self.time).run()
+        if self.simulator is None:
+            self.simulator = ScipyOdeSimulator(self.model, tspan=self.time)
+        simres = self.simulator.run(param_values=params, num_processors=self.sim_batch_size)
         return simres.all
 
     def get_anisotropy_curves(self):
