@@ -1,3 +1,4 @@
+from itertools import islice
 import numpy as np
 import pandas as pd
 from pyDOE import lhs
@@ -66,12 +67,12 @@ class Model(object):
         simres = self.simulator.run(param_values=params, num_processors=self.sim_batch_size)
         return simres.all
 
-    def get_anisotropy_curves(self):
+    def get_anisotropy_curves(self, params=None):
         """Simulates model and calculates the anisotropy curves from the
         monomer curves and parameters of biosensors."""
-        simres = self.get_monomer_curves()
+        simres = self.get_monomer_curves(params=params)
         anis_curves = {}
-        anis_state = {}
+        anis_states = {}
         for sensor in self.sensors.sensors:
             fluo = sensor.name
             cas = sensor.enzyme
@@ -79,28 +80,30 @@ class Model(object):
             anisotropy_dimer = sensor.anisotropy_dimer
             b = 1 + sensor.delta_b
 
-            dimer_curve = simres['s' + cas + '_dimer']
-            monomer_curve = simres['s' + cas + '_monomer']
+            try:
+                dimer_curve = simres['s' + cas + '_dimer']
+                monomer_curve = simres['s' + cas + '_monomer']
 
-            if monomer_curve.max() == 0:
-                anisotropy = np.array([anisotropy_dimer] * len(monomer_curve))
-            else:
-                m_curve = monomer_curve / monomer_curve.max()
+                anis_curves[fluo], anis_states[fluo] = estimate_anisotropy(monomer_curve,
+                                                                           anisotropy_monomer,
+                                                                           anisotropy_dimer,
+                                                                           b)
+            except TypeError:
+                anis_curves[fluo] = []
+                anis_states[fluo] = []
+                for this_simres in simres:
+                    dimer_curve = this_simres['s' + cas + '_dimer']
+                    monomer_curve = this_simres['s' + cas + '_monomer']
 
-                anisotropy = af.anisotropy_from_monomer(m_curve,
-                                                        anisotropy_monomer,
-                                                        anisotropy_dimer,
-                                                        b)
+                    anis_curve, anis_state = estimate_anisotropy(monomer_curve,
+                                                                 anisotropy_monomer,
+                                                                 anisotropy_dimer,
+                                                                 b)
 
-            # Check whether all dimer has transformed into monomer
-            anis_state[fluo] = True
-            if np.abs(anisotropy[-1] - anisotropy_monomer) > 1e-8:
-                print('Not all dimer was cleaved!')
-                anis_state[fluo] = False
+                    anis_curves[fluo].append(anis_curve)
+                    anis_states[fluo].append(anis_state)
 
-            anis_curves[fluo] = anisotropy
-
-        return anis_curves, anis_state
+        return anis_curves, anis_states
 
     def add_parameter_sweep(self, parameter_name, min_value, max_value,
                             correlation='uncorrelated'):
@@ -130,7 +133,7 @@ class Model(object):
         self.paramsweep = self.paramsweep.append(new_param_line,
                                                  ignore_index=True)
 
-    def simulate_experiment(self, n_exps=None):
+    def _simulate_experiment(self, n_exps=None):
         """Simulate experiments varying parameters with the values given at
         paramsweep.
 
@@ -166,20 +169,63 @@ class Model(object):
             param = correlated_param.parameter
             params[param] = params[correlated_to].values * correlation_val
 
-        for sensor in self.sensors.sensors:
-            fluo = sensor.name
-            params[fluo + '_anisotropy'] = [[np.nan], ] * len(params)
+        for rows in grouper(range(len(params)), self.sim_batch_size):
+            this_params = params.loc[rows]
 
-        for row, param_set in tqdm(params.iterrows(), total=(len(params))):
-            for param_name, param_val in param_set.items():
-                if 'anisotropy' in param_name:
-                    continue
-                self.model.parameters[param_name].value = param_val
-            anis_curves, anis_state = self.get_anisotropy_curves()
+            this_param_dict = {}
+            for col in this_params.columns:
+                if self.sim_batch_size == 1:
+                    this_param_dict[col] = this_params[col].values[0]
+                else:
+                    this_param_dict[col] = this_params[col].values
+            if this_params.empty:
+                this_param_dict = None
+
+            anis_curves, anis_state = self.get_anisotropy_curves(params=this_param_dict)
             for sensor in self.sensors.sensors:
                 fluo = sensor.name
                 cas = sensor.enzyme
-                params.at[row, fluo + '_anisotropy'] = anis_curves[fluo]
-                params.at[row, cas + '_cleaved'] = anis_state[fluo]
 
-        return params
+                anis_curves[fluo + '_anisotropy'] = anis_curves.pop(fluo)
+                anis_state[cas + '_cleaved'] = anis_state.pop(fluo)
+
+            if this_param_dict is None:
+                this_param_dict = {}
+            this_param_dict.update(anis_curves)
+            this_param_dict.update(anis_state)
+            this_res = pd.DataFrame(this_param_dict)
+            yield this_res
+
+    def simulate_experiment(self, n_exps=None):
+        dfs = [this for this in self._simulate_experiment(n_exps=n_exps)]
+        return pd.concat(dfs)
+
+
+def grouper(iterable, n):
+    iterable = iter(iterable)
+    while True:
+        tup = list(islice(iterable, 0, n))
+        if tup:
+            yield tup
+        else:
+            break
+
+
+def estimate_anisotropy(monomer_curve, anisotropy_monomer, anisotropy_dimer, b):
+    if monomer_curve.max() == 0:
+        anisotropy = np.array([anisotropy_dimer] * len(monomer_curve))
+    else:
+        m_curve = monomer_curve / monomer_curve.max()
+
+        anisotropy = af.anisotropy_from_monomer(m_curve,
+                                                anisotropy_monomer,
+                                                anisotropy_dimer,
+                                                b)
+
+    # Check whether all dimer has transformed into monomer
+    anis_state = True
+    if np.abs(anisotropy[-1] - anisotropy_monomer) > 1e-8:
+        print('Not all dimer was cleaved!')
+        anis_state = False
+
+    return [anisotropy], anis_state
