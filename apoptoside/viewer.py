@@ -1,26 +1,39 @@
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.widgets import RectangleSelector, Button
 from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
+import pandas as pd
 import seaborn as sns
+from seaborn._statistics import KDE
 from scipy import stats
 
 
 def df_viewer(df, sensors, save_dir):
+    print('You can view %d curves' % len(df))
 
-    fig, axs = plt.subplots(5, 1,
-                            figsize=(8, 10),
-                            gridspec_kw={'height_ratios': [5, 5, 5, 5, 1]},
-                            sharex=True)
+    if 'solidity' in df.columns:
+        fig, axs = plt.subplots(5, 1,
+                                figsize=(8, 10),
+                                gridspec_kw={'height_ratios': [5, 5, 5, 5, 1]},
+                                sharex=True)
+    else:
+        fig, axs = plt.subplots(4, 1,
+                                figsize=(8, 10),
+                                gridspec_kw={'height_ratios': [5, 5, 5, 1]},
+                                sharex=True)
+    plt.subplots_adjust(hspace=0)
 
     class SubPlot(object):
 
         def __init__(self, axs, df_row, sensors,
-                     x_col='time', y_col_suffix='anisotropy'):
+                     x_col='time', y_col_suffix='anisotropy',
+                     y_col_prefix='name'):
             self.sensors = sensors
             self.axs = axs
             self.x_col = x_col
             self.y_col_suffix = y_col_suffix
+            self.y_col_prefix = y_col_prefix
 
             time = df_row[self.x_col]
             mask = df_row.sigmoid_mask
@@ -28,10 +41,11 @@ def df_viewer(df, sensors, save_dir):
             plt.sca(self.axs)
 
             self.lines = []
-            for _, sensor_row in sensors.iterrows():
-                this_y = df_row['_'.join([sensor_row.fluorophore, self.y_col_suffix])]
-                l, = self.axs.plot(time, this_y, color=sensor_row.color,
-                                   label=sensor_row.fluorophore)
+            for sensor in sensors.sensors:
+                this_y = df_row['_'.join([getattr(sensor, self.y_col_prefix),
+                                          self.y_col_suffix])]
+                l, = self.axs.plot(time, this_y, color=sensor.color,
+                                   label=sensor.name)
                 self.lines.append(l)
 
             plt.legend()
@@ -49,9 +63,10 @@ def df_viewer(df, sensors, save_dir):
             plt.sca(self.axs)
             time = df_row[self.x_col]
             mask = df_row.sigmoid_mask
-            for line, (_, sensor_row) in zip(self.lines,
-                                             self.sensors.iterrows()):
-                this_y = df_row['_'.join([sensor_row.fluorophore, self.y_col_suffix])]
+            for line, sensor in zip(self.lines,
+                                             self.sensors.sensors):
+                this_y = df_row['_'.join([getattr(sensor, self.y_col_prefix),
+                                          self.y_col_suffix])]
                 line.set_xdata(time)
                 line.set_ydata(this_y)
 
@@ -68,10 +83,13 @@ def df_viewer(df, sensors, save_dir):
         def set_title(self, df_row):
             ind = df_row.name
             date = df_row.date
+            pos = df_row.position
+            label = df_row.label
             drug = df_row.drug
             plasmid = df_row.plasmid
-            self.axs.set_title('index: %s; date: %s; drug: %s; plasmid: %s' %
-                               (ind, date, drug, plasmid))
+            self.axs.set_title('index: %s; date: %s; drug: %s; \n '
+                               'position: %d; label: %d; plasmid: %s' %
+                               (ind, date, drug, pos, label, plasmid))
 
     class SimpleSubPlot(object):
 
@@ -106,17 +124,20 @@ def df_viewer(df, sensors, save_dir):
 
     subplot_anisotropy = SubPlot(axs[0], df.iloc[0], sensors)
     subplot_activity = SubPlot(axs[1], df.iloc[0], sensors,
-                      x_col='Cit_time_activity_new',
-                      y_col_suffix='activity_interpolate')
-
+                      x_col='Cas3_time_activity_new',
+                      y_col_suffix='activity_interpolate',
+                               y_col_prefix='enzyme')
     subplot_area = SimpleSubPlot(axs[2], df.iloc[0], x_col='time', y_col='area')
-    subplot_solidity = SimpleSubPlot(axs[3], df.iloc[0], x_col='time',
-                                 y_col='solidity')
 
     subplots = [subplot_anisotropy,
                 subplot_activity,
-                subplot_area,
-                subplot_solidity]
+                subplot_area]
+
+    if 'solidity' in df.columns:
+        subplot_solidity = SimpleSubPlot(axs[3], df.iloc[0], x_col='time',
+                                     y_col='solidity')
+
+        subplots.append(subplot_solidity)
 
     class Index(object):
 
@@ -227,10 +248,10 @@ def view_curves(axs, df_row, sensors, lines=None, fill=None):
         plt.sca(axs)
 
         lines = []
-        for _, sensor_row in sensors.iterrows():
-            anis = df_row[sensor_row.fluorophore + '_anisotropy']
-            l, = axs.plot(time, anis, color=sensor_row.color,
-                          label=sensor_row.fluorophore)
+        for sensor in sensors.sensors:
+            anis = df_row[sensor.name + '_anisotropy']
+            l, = axs.plot(time, anis, color=sensor.color,
+                          label=sensor.name)
             lines.append(l)
 
         plt.legend()
@@ -245,8 +266,8 @@ def view_curves(axs, df_row, sensors, lines=None, fill=None):
         return lines, fill
 
     else:
-        for line, (_, sensor_row) in zip(lines, sensors.iterrows()):
-            anis = df_row[sensor_row.fluorophore + '_anisotropy']
+        for line, sensor in zip(lines, sensors.sensors):
+            anis = df_row[sensor.name + '_anisotropy']
             line.set_xdata(time)
             line.set_ydata(anis)
 
@@ -260,10 +281,10 @@ def view_curves(axs, df_row, sensors, lines=None, fill=None):
 
 def plot_delta_b_histogram(df, sensors):
     """Plots an histogram for the delta b in the df. Must have a 'b' column"""
-    for _, sensor_row in sensors.iterrows():
-        fluo = sensor_row.fluorophore
-        color = sensor_row.color
-        b_values = df[fluo + '_b'].values
+    for sensor in sensors.sensors:
+        fluo = sensor.name
+        color = sensor.color
+        b_values = df[fluo + '_delta_b'].values
         b_values = b_values[np.isfinite(b_values)]
 
         plt.hist(b_values, bins=50, edgecolor='k',
@@ -322,3 +343,142 @@ def make_report(pdf_dir, df, sensors, hue=None, cols=["BFP_to_Cit", "BFP_to_Kate
         plot_histogram_2d(df, sensors, cols=cols, kind='scatter', hue=hue)
         pp.savefig()
         plt.close()
+
+
+def old_get_level_for_kde(x, y, level):
+    """Estimates the level that includes the percentage of data points
+    wanted."""
+    kde = stats.gaussian_kde([x, y])
+    probs = kde.pdf([x, y])
+    arr = np.asarray([x, y, probs]).T
+    arr = arr[arr[:, 2].argsort()]
+    ind = np.ceil(len(x) * level).astype(int)
+    return arr[ind, 2]
+
+
+def old_get_levels_for_kde(x, y, levels):
+    """Estimates the levels that include the percentages of data points
+    wanted."""
+    vals = []
+    for level in levels:
+        val = old_get_level_for_kde(x, y, level)
+        vals.append(val)
+    return np.sort(vals)
+
+
+def level_to_quantile(data, level):
+    isoprop = np.asarray(level)
+    values = np.ravel(data)
+    sorted_values = np.sort(values)
+    idx = np.searchsorted(sorted_values, isoprop)
+
+    normalized_values = np.cumsum(sorted_values) / values.sum()
+    quantile = np.take(normalized_values, idx, mode="clip")
+
+    return quantile
+
+
+def get_level_for_kde(xs, ys, percentage):
+    data = pd.DataFrame(np.array([xs, ys]).T, columns=['x', 'y'])
+    sns_kde = KDE()
+    my_kde = sns_kde._fit([data['x'].values, data['y'].values], None)
+    data['kde'] = my_kde.evaluate([data.x.values, data.y.values])
+    data.sort_values(by='kde', inplace=True, ascending=False,
+                     ignore_index=True)
+    ind = np.floor(len(data) * percentage)
+    if ind > 0:
+        ind -= 1
+    else:
+        print('index obtained was lower than one observation.')
+    level = data.loc[ind].kde
+
+    density, _ = sns_kde(x1=xs, x2=ys)
+    quantile = level_to_quantile(density, level)
+    return quantile
+
+
+def get_levels_for_kde(x, y, levels):
+    """Estimates the levels that include the percentages of data points
+    wanted."""
+    vals = []
+    for level in levels:
+        val = get_level_for_kde(x, y, level)
+        vals.append(val)
+    return np.sort(vals)
+
+
+def plot_kde(x, y, g, cmap='Blues_d', label=None, gridsize=60, kind='hist',
+             levels=(0.34, 0.68), level_func='new', vmin=None, vmax=None,
+             fill=False, lw=1):
+    """Plots a single kde plot with marginal dist plots on JointGrig g."""
+
+    this_map = matplotlib.cm.get_cmap(cmap)
+    this_color = this_map(0.7)
+    if kind == 'hist':
+        alpha = 0
+        sns.histplot(x=x, bins=gridsize, stat='density', edgecolor=this_color,
+                     ax=g.ax_marg_x, alpha=alpha, linewidth=2)
+        sns.histplot(y=y, bins=gridsize, stat='density', edgecolor=this_color,
+                     ax=g.ax_marg_y, alpha=alpha, linewidth=2)
+
+    elif kind == 'kde':
+        alpha = 0.4
+        sns.kdeplot(x=x, gridsize=gridsize, common_norm=True, fill=True,
+                    color=this_color, ax=g.ax_marg_x, alpha=alpha)
+        sns.kdeplot(y=y, gridsize=gridsize, common_norm=True, fill=True,
+                    color=this_color, ax=g.ax_marg_y, alpha=alpha)
+
+    if level_func is None:
+        def level_func(x, y, levels):
+            return levels
+    elif level_func == "old":
+        level_func = old_get_levels_for_kde
+    elif level_func == "new":
+        level_func = get_levels_for_kde
+
+    if vmin is None:
+        vmin = 10 ** (-4)
+
+    if vmax is None:
+        vmax = 10 ** (-2.5)
+
+    alpha = 0.9 if kind == 'hist' else 0.4
+    sns.kdeplot(x=x, y=y, cmap=cmap, alpha=alpha,
+                # levels from seaborn now uses probability mass
+                levels=level_func(x, y, levels),
+                ax=g.ax_joint, label=label, vmin=vmin, vmax=vmax, shade=fill,
+                linewidths=lw)
+
+
+def plot_kdes(df, x_col, y_col, hue=None, xlim=(-20, 40), ylim=(-20, 40),
+              cmaps=None, labels=None, gridsizes=None, kinds=None,
+              levels=(0.34, 0.68), height=6, level_func=None,
+              vmins=None, vmaxs=None, levelss=None, fills=False, lws=None):
+    """Generates a JointGrid plot and makes de kde plots."""
+    g = sns.JointGrid(data=df, x=x_col, y=y_col,
+                      xlim=xlim, ylim=ylim, height=height)
+
+    if hue is None:
+        plot_kde(df[x_col].values, df[y_col].values, g, cmap=cmaps, label=labels,
+                 gridsize=gridsizes)
+    else:
+        for (this_var, this_df), this_cmap,  gridsize, kind, vmin, vmax, levels, fill, lw in zip(
+                df.groupby(hue),
+                cmaps,
+                gridsizes, kinds, vmins, vmaxs, levelss, fills, lws):
+            plot_kde(this_df[x_col].values, this_df[y_col].values, g,
+                     cmap=this_cmap, label=this_var, gridsize=gridsize,
+                     kind=kind, levels=levels, level_func=level_func,
+                     vmin=vmin, vmax=vmax, fill=fill, lw=lw)
+
+    return g
+
+
+def add_experimental_noise(times, cov=None):
+    """Add correlated experimental noise to time differences."""
+    if cov is None:
+        cov = np.array([[27.4241789, 2.48916841], [2.48916841, 21.80573026]])
+        cov *= 0.75
+
+    times += np.random.multivariate_normal([0, 0], cov, times.shape[0])
+    return times

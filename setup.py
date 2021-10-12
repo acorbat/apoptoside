@@ -10,5 +10,7 @@ setup(
     author_email='acorbat@df.uba.ar',
     description='Package used for analysing homoFRET experiments with caspase '
                 'biosensors.',
-    install_requires=['matplotlib', 'numpy', 'pandas', 'scipy', 'seaborn']
+    install_requires=['matplotlib', 'numpy', 'pandas', 'pyDOE', 'scipy',
+                      'seaborn',
+                      'caspase_model @ git+https://github.com/acorbat/caspase_model.git']
 )
