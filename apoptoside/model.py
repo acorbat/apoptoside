@@ -4,7 +4,6 @@ import pandas as pd
 from pyDOE import lhs
 import pysb
 from pysb.simulator import ScipyOdeSimulator
-from tqdm import tqdm
 
 from caspase_model.shared import observe_biosensors
 from . import anisotropy_functions as af
@@ -193,7 +192,7 @@ class Model(object):
                 this_param_dict = {}
             this_param_dict.update(anis_curves)
             this_param_dict.update(anis_state)
-            this_res = pd.DataFrame(this_param_dict)
+            this_res = pd.DataFrame([this_param_dict])
             yield this_res
 
     def simulate_experiment(self, n_exps=None):
@@ -228,4 +227,4 @@ def estimate_anisotropy(monomer_curve, anisotropy_monomer, anisotropy_dimer, b):
         print('Not all dimer was cleaved!')
         anis_state = False
 
-    return [anisotropy], anis_state
+    return anisotropy, anis_state
