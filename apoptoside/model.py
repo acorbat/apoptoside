@@ -186,10 +186,14 @@ class Model(object):
             params = pd.concat([params, params_int], ignore_index=True)
 
         for rows in grouper(range(len(params)), self.sim_batch_size):
+            param_set_id = None
             this_params = params.loc[rows]
 
             this_param_dict = {}
             for col in this_params.columns:
+                if col == 'param_set_id':
+                    param_set_id = this_params[col].values[0]
+                    continue
                 if self.sim_batch_size == 1:
                     this_param_dict[col] = this_params[col].values[0]
                 else:
@@ -210,6 +214,8 @@ class Model(object):
             this_param_dict.update(anis_curves)
             this_param_dict.update(anis_state)
             this_res = pd.DataFrame([this_param_dict])
+            if param_set_id:
+                this_res['param_set_id'] = param_set_id
             yield this_res
 
     def simulate_experiment(self, n_exps=None):
