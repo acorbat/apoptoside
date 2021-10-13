@@ -176,13 +176,14 @@ class Model(object):
             params[param] = params[correlated_to].values * correlation_val
 
         if self.duplicate_stimuli:
+            params['IntrinsicStimuli_0'] = 0
             params['param_set_id'] = np.arange(len(params))
             params_int = params.copy()
             params_int['L_0'] = 0
             params_int['IntrinsicStimuli_0'] = 1e2
             params['IntrinsicStimuli_0'] = 0
-            
-            params = pd.apend([params, params_int], ignore_index=True)
+
+            params = pd.concat([params, params_int], ignore_index=True)
 
         for rows in grouper(range(len(params)), self.sim_batch_size):
             this_params = params.loc[rows]
