@@ -29,6 +29,7 @@ class Model(object):
         self.sensors = None
         self.paramsweep = pd.DataFrame(columns=['parameter', 'min_value',
                                        'max_value', 'correlation'])
+        self.duplicate_stimuli = False
         self.simulator = None
         self.sim_batch_size = 1
         try:
@@ -132,6 +133,12 @@ class Model(object):
         self.paramsweep = self.paramsweep.append(new_param_line,
                                                  ignore_index=True)
 
+    def set_duplicate_stimuli(self):
+        """Duplicate parameter sweep but with both stimuli separately.
+        WARNING: must have L_0 and IntrinsicStimuli_0 initials."""
+        self.duplicate_stimuli = True
+
+
     def _simulate_experiment(self, n_exps=None):
         """Simulate experiments varying parameters with the values given at
         paramsweep.
@@ -167,6 +174,15 @@ class Model(object):
             correlated_to, correlation_val = correlated_param.correlation
             param = correlated_param.parameter
             params[param] = params[correlated_to].values * correlation_val
+
+        if self.duplicate_stimuli:
+            params['param_set_id'] = np.arange(len(params))
+            params_int = params.copy()
+            params_int['L_0'] = 0
+            params_int['IntrinsicStimuli_0'] = 1e2
+            params['IntrinsicStimuli_0'] = 0
+            
+            params = pd.apend([params, params_int], ignore_index=True)
 
         for rows in grouper(range(len(params)), self.sim_batch_size):
             this_params = params.loc[rows]
