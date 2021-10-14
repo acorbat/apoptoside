@@ -29,6 +29,7 @@ class Model(object):
         self.sensors = None
         self.paramsweep = pd.DataFrame(columns=['parameter', 'min_value',
                                        'max_value', 'correlation'])
+        self.duplicate_stimuli = False
         self.simulator = None
         self.sim_batch_size = 1
         try:
@@ -132,6 +133,11 @@ class Model(object):
         self.paramsweep = self.paramsweep.append(new_param_line,
                                                  ignore_index=True)
 
+    def set_duplicate_stimuli(self):
+        """Duplicate parameter sweep but with both stimuli separately.
+        WARNING: must have L_0 and IntrinsicStimuli_0 initials."""
+        self.duplicate_stimuli = True
+
     def _simulate_experiment(self, n_exps=None):
         """Simulate experiments varying parameters with the values given at
         paramsweep.
@@ -168,11 +174,26 @@ class Model(object):
             param = correlated_param.parameter
             params[param] = params[correlated_to].values * correlation_val
 
+        if self.duplicate_stimuli:
+            params['IntrinsicStimuli_0'] = 0
+            params['param_set_id'] = np.arange(len(params))
+            params_int = params.copy()
+            params_int['L_0'] = 0
+            params_int['IntrinsicStimuli_0'] = 1e2
+            params['IntrinsicStimuli_0'] = 0
+
+            params = pd.concat([params, params_int], ignore_index=True)
+
         for rows in grouper(range(len(params)), self.sim_batch_size):
+            param_set_id = None
             this_params = params.loc[rows]
 
             this_param_dict = {}
             for col in this_params.columns:
+                if col == 'param_set_id':
+                    param_set_id = this_params[col].values[0]
+                    continue
+
                 if self.sim_batch_size == 1:
                     this_param_dict[col] = this_params[col].values[0]
                 else:
@@ -193,6 +214,10 @@ class Model(object):
             this_param_dict.update(anis_curves)
             this_param_dict.update(anis_state)
             this_res = pd.DataFrame([this_param_dict])
+
+            if param_set_id is not None:
+                this_res['param_set_id'] = param_set_id
+
             yield this_res
 
     def simulate_experiment(self, n_exps=None):
