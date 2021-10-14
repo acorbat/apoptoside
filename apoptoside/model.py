@@ -214,7 +214,7 @@ class Model(object):
             this_param_dict.update(anis_curves)
             this_param_dict.update(anis_state)
             this_res = pd.DataFrame([this_param_dict])
-            if param_set_id:
+            if param_set_id is not None:
                 this_res['param_set_id'] = param_set_id
             yield this_res
 
