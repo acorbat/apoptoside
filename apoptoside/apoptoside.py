@@ -326,6 +326,22 @@ class Apop(object):
                 axis=1
             )
 
+    def add_activity_widths(self, time_col, curve_col, single_time_col=False):
+        """Add the time of the maximum of curve"""
+        for sensor in self.sensors.sensors:
+            fluo = sensor.name
+            casp = sensor.enzyme
+            if single_time_col:
+                this_time_col = time_col
+            else:
+                this_time_col = name_col(fluo, time_col)
+                if this_time_col not in self.df.columns:
+                    this_time_col = name_col(casp, time_col)
+            self.df[name_col(casp, 'act_width')] = self.df.apply(
+                lambda x: self._get_activity_width(x[this_time_col], x[name_col(casp, curve_col)]),
+                axis=1
+            )
+
     def add_time_differences(self, refer_to=None):
         """Adds a column with the time differences between max activities.
         refer_to parameter can be used to refer every time to one specific
@@ -357,6 +373,28 @@ class Apop(object):
 
             vw.make_report(pdf_dir, this_df, self.sensors, hue=hue,
                            cols=self.time_diff_cols[-2:])
+
+    def _get_activity_width(self, time, activity):
+        """Calculates full width at half maximum of activity.
+
+        Parameters
+        ----------
+        time: vector
+            Time vector of data
+        activity: vector
+            Activity vector
+
+        Returns
+        -------
+        width: float
+            Full width at half maximum of activity
+        """
+        activity = activity.copy()
+        activity = activity / np.max(activity)
+        inds = np.where(activity >= 0.5)[0]
+
+        width = time[inds[-1]] - time[inds[0]]
+        return width
 
     def _generate_time_vector(self, time, time_step):
         """Generates a new time vector with same start as time, until almost
