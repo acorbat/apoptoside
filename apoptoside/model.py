@@ -5,7 +5,8 @@ from pyDOE import lhs
 import pysb
 from pysb.simulator import ScipyOdeSimulator
 
-from caspase_model.shared import observe_biosensors
+from caspase_model.shared import observe_biosensors, intrinsic_stimuli
+from .apoptoside import Apop
 from . import anisotropy_functions as af
 from .sensors import Sensors
 
@@ -159,30 +160,14 @@ class Model(object):
         if not n_exps:
             n_exps = 1000
 
-        not_correlated_params = self.paramsweep.query('correlation == "uncorrelated"')
-        matrix = lhs(len(not_correlated_params), n_exps)
-
-        mins = not_correlated_params.min_value.values
-        maxs = not_correlated_params.max_value.values
-
-        matrix = mins + (maxs - mins) * matrix
-
-        params = pd.DataFrame(matrix,
-                              columns=not_correlated_params.parameter.values)
-        for row, correlated_param in self.paramsweep.query('correlation != "uncorrelated"').iterrows():
-            correlated_to, correlation_val = correlated_param.correlation
-            param = correlated_param.parameter
-            params[param] = params[correlated_to].values * correlation_val
+        params = self._generate_parameter_sweep_matrix(n_exps)
 
         if self.duplicate_stimuli:
-            params['IntrinsicStimuli_0'] = 0
-            params['param_set_id'] = np.arange(len(params))
-            params_int = params.copy()
-            params_int['L_0'] = 0
-            params_int['IntrinsicStimuli_0'] = 1e2
-            params['IntrinsicStimuli_0'] = 0
-
-            params = pd.concat([params, params_int], ignore_index=True)
+            if params.empty:
+                params = pd.DataFrame([{'L_0': self.model.parameters['L_0'].value}])
+                intrinsic_stimuli(self.model)
+                self.model.parameters['IntrinsicStimuli_0'].value = 0
+            params = self._duplicate_stimuli_in_matrix(params)
 
         for rows in grouper(range(len(params)), self.sim_batch_size):
             param_set_id = None
@@ -219,6 +204,31 @@ class Model(object):
                 this_res['param_set_id'] = param_set_id
 
             yield this_res
+
+    def _duplicate_stimuli_in_matrix(self, params):
+        params['IntrinsicStimuli_0'] = 0
+        params['param_set_id'] = np.arange(len(params))
+        params_int = params.copy()
+        params_int['L_0'] = 0
+        params_int['IntrinsicStimuli_0'] = 1e2
+        params['IntrinsicStimuli_0'] = 0
+        params = pd.concat([params, params_int], ignore_index=True)
+        return params
+
+    def _generate_parameter_sweep_matrix(self, n_exps):
+        not_correlated_params = self.paramsweep.query('correlation == "uncorrelated"')
+        matrix = lhs(len(not_correlated_params), n_exps)
+        mins = not_correlated_params.min_value.values
+        maxs = not_correlated_params.max_value.values
+        matrix = mins + (maxs - mins) * matrix
+        params = pd.DataFrame(matrix,
+                              columns=not_correlated_params.parameter.values)
+        for row, correlated_param in self.paramsweep.query('correlation != "uncorrelated"').iterrows():
+            correlated_to, correlation_val = correlated_param.correlation
+            param = correlated_param.parameter
+            params[param] = params[correlated_to].values * correlation_val
+
+        return params
 
     def simulate_experiment(self, n_exps=None):
         dfs = [this for this in self._simulate_experiment(n_exps=n_exps)]
