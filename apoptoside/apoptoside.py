@@ -53,11 +53,17 @@ class Apop(object):
     add_interpolation : Add an interpolation column.
     """
 
-    def __init__(self, data, save_dir=None):
+    def __init__(self, data=None, sim_data=None, save_dir=None, sensors_path=None):
 
-        self.load_df(data)
-        self.sensors = pd.DataFrame(columns=['fluorophore', 'delta_b', 'color',
+        if data is not None:
+            self.load_df(data)
+        if sensors_path is None:
+            self.sensors = pd.DataFrame(columns=['fluorophore', 'delta_b', 'color',
                                              'caspase'])
+        else:
+            self.load_sensors(sensors_path)
+        if sim_data is not None:
+            self.load_sim(sim_data)
         self.refer_to = 'Cas3'
         self.time_diff_cols = []
         self.save_dir = save_dir
@@ -69,6 +75,25 @@ class Apop(object):
             self.df = data
         else:
             self.df = pd.read_pickle(str(data))
+
+    def load_sim(self, results):
+        self.df = results
+        self.df['stimuli'] = self.df.apply(
+            lambda x: 'intrinsic' if x['IntrinsicStimuli_0'] != 0 else 'extrinsic',
+            axis=1)
+        self.df['sigmoid_mask'] = self.df.apply(
+            lambda row: [True] * len(row['BFP_anisotropy']),
+            axis=1)
+        self.df['name'] = 'simulation'
+        self.add_is_apoptotic()
+        self.df['time'] = self.df.apply(
+            lambda row: np.arange(0, len(row['BFP_anisotropy']) / 60, 1 / 60),
+            axis=1)
+        self.add_delta_b(fix_b=True)
+        self.add_activities()
+        self.add_max_times('time', 'activity', single_time_col=True)
+        self.add_time_differences(refer_to='Cas3')
+        # self.add_activity_widths('time_activity', 'activity', single_time_col=False)
 
     def load_sensors(self, path):
         """Load sensors from file."""
