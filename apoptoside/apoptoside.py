@@ -93,7 +93,7 @@ class Apop(object):
         self.add_activities()
         self.add_max_times('time', 'activity', single_time_col=True)
         self.add_time_differences(refer_to='Cas3')
-        # self.add_activity_widths('time_activity', 'activity', single_time_col=False)
+        self.add_activity_widths('time_activity', 'activity', single_time_col=False)
 
     def load_sensors(self, path):
         """Load sensors from file."""
@@ -255,15 +255,15 @@ class Apop(object):
         for sensor in self.sensors.sensors:
             fluo = sensor.name
             casp = sensor.enzyme
-            self.df[name_col(casp, 'time_activity')], self.df[name_col(casp, 'activity')] = zip(*self.df.apply(
-                lambda x: self._calculate_activity(
-                    x['time'],
-                    x[name_col(fluo, 'anisotropy')],
-                    x['sigmoid_mask'],
-                    x[name_col(fluo, 'delta_b')]
-                ),
-                axis=1
-            ))
+            self.df = self.df.join(self.df.apply(
+                lambda x: pd.Series(dict(zip([name_col(casp, 'time_activity'), name_col(casp, 'activity')],
+                                             self._calculate_activity(
+                                                 x['time'],
+                                                 x[name_col(fluo, 'anisotropy')],
+                                                 x['sigmoid_mask'],
+                                                 x[name_col(fluo, 'delta_b')]
+                                             )))),
+                axis=1))
 
     def add_interpolation(self, new_time_col, time_col, curve_col,
                           all_fluo=False, all_casp=False):

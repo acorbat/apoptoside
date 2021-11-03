@@ -232,7 +232,7 @@ class Model(object):
 
     def simulate_experiment(self, n_exps=None):
         dfs = [this for this in self._simulate_experiment(n_exps=n_exps)]
-        return pd.concat(dfs)
+        return pd.concat(dfs, ignore_index=True)
 
 
 def grouper(iterable, n):
