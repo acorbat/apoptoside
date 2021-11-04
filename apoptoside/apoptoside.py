@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 
 from . import anisotropy_functions as af
+from . import experimental_tests as et
 from . import filter_data as fd
 from . import transformation as tf
 from .sensors import Sensors
@@ -398,6 +399,9 @@ class Apop(object):
 
             vw.make_report(pdf_dir, this_df, self.sensors, hue=hue,
                            cols=self.time_diff_cols[-2:])
+
+    def add_test_dynamics(self):
+        self.df = self.df.join((self.df.apply(et.test_dynamics, axis=1)))
 
     def _get_activity_width(self, time, activity):
         """Calculates full width at half maximum of activity.
