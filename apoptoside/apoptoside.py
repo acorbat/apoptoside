@@ -266,6 +266,24 @@ class Apop(object):
                                              )))),
                 axis=1))
 
+    def add_monomer_curves(self):
+        """Adds the monomer_curve column for each fluorophore using the found b
+        parameter for each row."""
+        for sensor in self.sensors.sensors:
+            fluo = sensor.name
+            casp = sensor.enzyme
+            self.df = self.df.join(self.df.apply(
+                lambda x: pd.Series(dict(zip([name_col(casp, 'time_monomer'),
+                                              name_col(casp,
+                                                       'monomer_fraction')],
+                                             self._calculate_monomer(
+                                                 x['time'],
+                                                 x[name_col(fluo, 'anisotropy')],
+                                                 x['sigmoid_mask'],
+                                                 x[name_col(fluo, 'delta_b')]
+                                             )))),
+                axis=1))
+
     def add_interpolation(self, new_time_col, time_col, curve_col,
                           all_fluo=False, all_casp=False):
         """Add an interpolation column.
@@ -458,6 +476,17 @@ class Apop(object):
             return np.asarray(time), np.asarray(anisotropy)
 
         return tf.calculate_activity(time, anisotropy, delta_b)
+
+    def _calculate_monomer(self, time, anisotropy, mask, delta_b):
+        """Masks the anisotropy curve and calculates the corresponding
+        enzimatic activity"""
+        time = self._mask(time, mask)
+        anisotropy = self._mask(anisotropy, mask)
+
+        if not any(np.isfinite(time)):
+            return np.asarray(time), np.asarray(anisotropy)
+
+        return np.asarray(time), tf.calculate_monomer_curve(anisotropy, delta_b)
 
 
 def name_col(*args):
