@@ -6,7 +6,6 @@ import pysb
 from pysb.simulator import ScipyOdeSimulator
 
 from caspase_model.shared import observe_biosensors, intrinsic_stimuli, observe_caspases
-from .apoptoside import Apop
 from . import anisotropy_functions as af
 from .sensors import Sensors
 
