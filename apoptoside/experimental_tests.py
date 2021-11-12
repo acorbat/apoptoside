@@ -49,9 +49,49 @@ def test_caspase_activation(model: pysb.Model) -> bool:
     intrinsic_active_caspases = {'Cas3': True, 'Cas6': True,
                                  'Cas8': True, 'Apop': True}
 
-    check_caspases_western_blots(model,
-                                 extrinsic_active_caspases=extrinsic_active_caspases,
-                                 intrinsic_active_caspases=intrinsic_active_caspases)
+    return check_caspases_western_blots(model,
+                                        extrinsic_active_caspases=extrinsic_active_caspases,
+                                        intrinsic_active_caspases=intrinsic_active_caspases)
+
+
+def test_caspase8_knockout(model: pysb.Model) -> bool:
+    """Test to corroborate adequate behaviour of the model when knocking out
+    caspase 8. No caspase should be active while using extrinsic stimuli.
+    Intrinsic and effector caspases should be active while using intrinsic
+    stimuli."""
+    extrinsic_active_caspases = {'Cas3': False, 'Cas6': False,
+                                 'Cas8': False, 'Apop': False}
+    extrinsic_inactive_caspases = {'Cas3': True, 'Cas6': True,
+                                   'Cas8': False}
+    intrinsic_active_caspases = {'Cas3': True, 'Cas6': True,
+                                 'Cas8': False, 'Apop': True}
+    intrinsic_inactive_caspases = {'Cas8': False}
+
+    return check_caspases_western_blots(model, conditions={'C8_0': 0},
+                                        extrinsic_active_caspases=extrinsic_active_caspases,
+                                        intrinsic_active_caspases=intrinsic_active_caspases,
+                                        extrinsic_inactive_caspases=extrinsic_inactive_caspases,
+                                        intrinsic_inactive_caspases=intrinsic_inactive_caspases)
+
+
+def test_caspase9_knockout(model: pysb.Model) -> bool:
+    """Test to corroborate adequate behaviour of the model when knocking out
+    caspase 9. Extrinsic and effector caspases should be active while using
+    intrinsic stimuli. No caspase should be active while using intrinsic
+    stimuli."""
+    extrinsic_active_caspases = {'Cas3': True, 'Cas6': True,
+                                 'Cas8': True, 'Apop': False}
+    extrinsic_inactive_caspases = {'Apaf': False}
+    intrinsic_active_caspases = {'Cas3': False, 'Cas6': False,
+                                 'Cas8': False, 'Apop': False}
+    intrinsic_inactive_caspases = {'Cas3': True, 'Cas6': True,
+                                   'Cas8': True, 'Apaf': False}
+
+    return check_caspases_western_blots(model, conditions={'Apaf_0': 0},
+                                        extrinsic_active_caspases=extrinsic_active_caspases,
+                                        intrinsic_active_caspases=intrinsic_active_caspases,
+                                        extrinsic_inactive_caspases=extrinsic_inactive_caspases,
+                                        intrinsic_inactive_caspases=intrinsic_inactive_caspases)
 
 
 def check_caspases_western_blots(model: pysb.Model, conditions: Dict = None,
