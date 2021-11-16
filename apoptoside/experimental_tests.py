@@ -53,7 +53,19 @@ def test_dynamics(df: pd.Series) -> pd.Series:
 
 def test_caspase_activation(model: pysb.Model) -> bool:
     """Simple test to corroborate that every caspase is active when using
-    extrinsic and intrinsic stimuli"""
+    extrinsic and intrinsic stimuli [1]_ [2]_.
+
+     References
+    ----------
+    .. [1] McComb, S; Chan, PK; Guinot, A; Hartmannsdottir, H; Jenni,
+    S; Dobay, MP; Bourquin, J-P; Bornhauser, BC. "Efficient apoptosis
+    requires feedback amplification of upstream apoptotic signals by effector
+    caspase-3 or -7." Science Advances 5 (2019): eaau9433.
+    :DOI:`10.1126/sciadv.aau9433`
+    .. [2] Inoue, S; Browne, G; Melino, G; Cohen, GM. "Ordering of caspases in
+    cells undergoing apoptosis by the intrinsic pathway." Cell Death and
+    Differentiation 16 (2009): 1053-1061. :DOI:`10.1038/cdd.2009.29`
+    """
     extrinsic_active_caspases = {'Cas3': True, 'Cas6': True,
                                  'Cas8': True, 'Apop': True}
     intrinsic_active_caspases = {'Cas3': True, 'Cas6': True,
@@ -68,7 +80,15 @@ def test_caspase8_knockout(model: pysb.Model) -> bool:
     """Test to corroborate adequate behaviour of the model when knocking out
     caspase 8. No caspase should be active while using extrinsic stimuli.
     Intrinsic and effector caspases should be active while using intrinsic
-    stimuli."""
+    stimuli[1]_.
+
+     References
+    ----------
+    .. [1] McComb, S; Chan, PK; Guinot, A; Hartmannsdottir, H; Jenni,
+    S; Dobay, MP; Bourquin, J-P; Bornhauser, BC. "Efficient apoptosis
+    requires feedback amplification of upstream apoptotic signals by effector
+    caspase-3 or -7." Science Advances 5 (2019): eaau9433.
+    :DOI:`10.1126/sciadv.aau9433`"""
     extrinsic_active_caspases = {'Cas3': False, 'Cas6': False,
                                  'Cas8': False, 'Apop': False}
     extrinsic_inactive_caspases = {'Cas3': True, 'Cas6': True,
@@ -88,7 +108,15 @@ def test_caspase9_knockout(model: pysb.Model) -> bool:
     """Test to corroborate adequate behaviour of the model when knocking out
     caspase 9. Extrinsic and effector caspases should be active while using
     intrinsic stimuli. No caspase should be active while using intrinsic
-    stimuli."""
+    stimuli[1]_.
+
+     References
+    ----------
+    .. [1] McComb, S; Chan, PK; Guinot, A; Hartmannsdottir, H; Jenni,
+    S; Dobay, MP; Bourquin, J-P; Bornhauser, BC. "Efficient apoptosis
+    requires feedback amplification of upstream apoptotic signals by effector
+    caspase-3 or -7." Science Advances 5 (2019): eaau9433.
+    :DOI:`10.1126/sciadv.aau9433`"""
     extrinsic_active_caspases = {'Cas3': True, 'Cas6': True,
                                  'Cas8': True, 'Apop': False}
     extrinsic_inactive_caspases = {'Apaf': False}
@@ -108,7 +136,15 @@ def test_caspase6_knockout(model: pysb.Model) -> bool:
     """Test to corroborate adequate behaviour of the model when knocking out
     caspase 6. Intrinsic and effector caspases should be active while using
     intrinsic stimuli, but extrinsic caspase should not be active. Every
-    caspase should be active while using extrinsic stimuli."""
+    caspase should be active while using extrinsic stimuli[1]_.
+
+     References
+    ----------
+    .. [1] McComb, S; Chan, PK; Guinot, A; Hartmannsdottir, H; Jenni,
+    S; Dobay, MP; Bourquin, J-P; Bornhauser, BC. "Efficient apoptosis
+    requires feedback amplification of upstream apoptotic signals by effector
+    caspase-3 or -7." Science Advances 5 (2019): eaau9433.
+    :DOI:`10.1126/sciadv.aau9433`"""
     extrinsic_active_caspases = {'Cas3': True, 'Cas6': False,
                                  'Cas8': True, 'Apop': True}
     extrinsic_inactive_caspases = {'Cas6': False}
@@ -127,7 +163,15 @@ def test_caspase3or7_knockout(model: pysb.Model) -> bool:
     """Test to corroborate adequate behaviour of the model when knocking out
     caspase 3 or 7. As these caspases are redundant, the test consists in
     halving caspase 3 initial concentration. All caspases should be active
-    when using either stimuli."""
+    when using either stimuli[1]_.
+
+     References
+    ----------
+    .. [1] McComb, S; Chan, PK; Guinot, A; Hartmannsdottir, H; Jenni,
+    S; Dobay, MP; Bourquin, J-P; Bornhauser, BC. "Efficient apoptosis
+    requires feedback amplification of upstream apoptotic signals by effector
+    caspase-3 or -7." Science Advances 5 (2019): eaau9433.
+    :DOI:`10.1126/sciadv.aau9433`"""
     extrinsic_active_caspases = {'Cas3': True, 'Cas6': True,
                                  'Cas8': True, 'Apop': True}
     extrinsic_inactive_caspases = {}
@@ -147,7 +191,15 @@ def test_caspase3_and_7_knockout(model: pysb.Model) -> bool:
     """Test to corroborate adequate behaviour of the model when knocking out
     caspase 3 and 7. When using extrinsic stimuli, only caspase 8 is active.
     When using intrinsic stimuli, only a slow form of caspase 9 should be
-    active."""
+    active[1]_.
+
+     References
+    ----------
+    .. [1] McComb, S; Chan, PK; Guinot, A; Hartmannsdottir, H; Jenni,
+    S; Dobay, MP; Bourquin, J-P; Bornhauser, BC. "Efficient apoptosis
+    requires feedback amplification of upstream apoptotic signals by effector
+    caspase-3 or -7." Science Advances 5 (2019): eaau9433.
+    :DOI:`10.1126/sciadv.aau9433`"""
     extrinsic_active_caspases = {'Cas3': False, 'Cas6': False,
                                  'Cas8': True, 'Apop': False}
     extrinsic_inactive_caspases = {'Cas3': False}
@@ -166,7 +218,15 @@ def test_caspase3_and_6_knockout(model: pysb.Model) -> bool:
     """Test to corroborate adequate behaviour of the model when knocking out
     caspase 3 and 6. Intrinsic and effector caspases should be active while
     using intrinsic stimuli, but extrinsic caspase should not be active. Every
-    caspase should be active while using extrinsic stimuli."""
+    caspase should be active while using extrinsic stimuli[1]_.
+
+     References
+    ----------
+    .. [1] McComb, S; Chan, PK; Guinot, A; Hartmannsdottir, H; Jenni,
+    S; Dobay, MP; Bourquin, J-P; Bornhauser, BC. "Efficient apoptosis
+    requires feedback amplification of upstream apoptotic signals by effector
+    caspase-3 or -7." Science Advances 5 (2019): eaau9433.
+    :DOI:`10.1126/sciadv.aau9433`"""
     extrinsic_active_caspases = {'Cas3': True, 'Cas6': False,
                                  'Cas8': True, 'Apop': True}
     extrinsic_inactive_caspases = {'Cas6': False}
@@ -187,7 +247,15 @@ def test_caspase3_7_and_6_knockout(model: pysb.Model) -> bool:
     """Test to corroborate adequate behaviour of the model when knocking out
     caspase 3, 7 and 6. When using extrinsic stimuli, only caspase 8 is active.
     When using intrinsic stimuli, only a slow form of caspase 9 should be
-    active."""
+    active[1]_.
+
+     References
+    ----------
+    .. [1] McComb, S; Chan, PK; Guinot, A; Hartmannsdottir, H; Jenni,
+    S; Dobay, MP; Bourquin, J-P; Bornhauser, BC. "Efficient apoptosis
+    requires feedback amplification of upstream apoptotic signals by effector
+    caspase-3 or -7." Science Advances 5 (2019): eaau9433.
+    :DOI:`10.1126/sciadv.aau9433`"""
     extrinsic_active_caspases = {'Cas3': False, 'Cas6': False,
                                  'Cas8': True, 'Apop': False}
     extrinsic_inactive_caspases = {'Cas3': False, 'Cas6': False}
