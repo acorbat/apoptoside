@@ -7,7 +7,7 @@ from .model import Model as apop_model
 
 def test_dynamics(df: pd.Series) -> pd.Series:
     """Receives a pandas series and corroborates whether timing between
-    caspases and activity widths are among experimental values found.
+    caspases and activity widths are among experimental values found [1]_[2]_.
 
     Parameters
     ----------
@@ -19,6 +19,16 @@ def test_dynamics(df: pd.Series) -> pd.Series:
     test_results: pandas.Series
         Pandas Series determining whether each descriptor is inside
         experimental range
+
+    References
+    ----------
+    .. [1] Corbat, AA; Schuermann, KC; Liguzinski, P; Radon, Y; Bastiaens, PIH;
+        Verveer, PJ; Grecco, HE. "Co-imaging extrinsic, intrinsic and effector
+        caspase activity by fluorescence anisotropy microscopy." Redox
+        Biology 19 (2018): 210-217. :DOI:`10.1016/j.redox.2018.07.023`
+    .. [2] Corbat, AA; Silberberg, M; Grecco, HE. "An Integrative Apoptotic
+        Reaction Model for extrinsic and intrinsic stimuli." bioRxiv (2021):
+        DOI:`10.1101/2021.05.21.444824`
     """
     test_dict = {'extrinsic': {'Cas9_to_Cas3': (5.5, 15),
                                'Cas8_to_Cas3': (2, 9),
@@ -164,7 +174,7 @@ def test_caspase3_and_6_knockout(model: pysb.Model) -> bool:
                                  'Cas8': False, 'Apop': True}
     intrinsic_inactive_caspases = {'Cas6': False}
 
-    return check_caspases_western_blots(model, conditions={'C3_0': 
+    return check_caspases_western_blots(model, conditions={'C3_0':
                                                                model.parameters['C3_0'].value // 2,
                                                            'C6_0': 0},
                                         extrinsic_active_caspases=extrinsic_active_caspases,
