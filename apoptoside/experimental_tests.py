@@ -124,9 +124,28 @@ def test_caspase3or7_knockout(model: pysb.Model) -> bool:
     intrinsic_active_caspases = {'Cas3': True, 'Cas6': True,
                                  'Cas8': True, 'Apop': True}
     intrinsic_inactive_caspases = {}
-    
+
     return check_caspases_western_blots(model, conditions={'C3_0':
                                                                model.parameters['C3_0'].value // 2},
+                                        extrinsic_active_caspases=extrinsic_active_caspases,
+                                        intrinsic_active_caspases=intrinsic_active_caspases,
+                                        extrinsic_inactive_caspases=extrinsic_inactive_caspases,
+                                        intrinsic_inactive_caspases=intrinsic_inactive_caspases)
+
+
+def test_caspase3_and_7_knockout(model: pysb.Model) -> bool:
+    """Test to corroborate adequate behaviour of the model when knocking out
+    caspase 3 and 7. When using extrinsic stimuli, only caspase 8 is active.
+    When using intrinsic stimuli, only a slow form of caspase 9 should be
+    active."""
+    extrinsic_active_caspases = {'Cas3': False, 'Cas6': False,
+                                 'Cas8': True, 'Apop': False}
+    extrinsic_inactive_caspases = {'Cas3': False}
+    intrinsic_active_caspases = {'Cas3': False, 'Cas6': False,
+                                 'Cas8': False, 'Apop': False}
+    intrinsic_inactive_caspases = {'Cas3': False}
+
+    return check_caspases_western_blots(model, conditions={'C3_0': 0},
                                         extrinsic_active_caspases=extrinsic_active_caspases,
                                         intrinsic_active_caspases=intrinsic_active_caspases,
                                         extrinsic_inactive_caspases=extrinsic_inactive_caspases,
