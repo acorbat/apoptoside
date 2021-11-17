@@ -415,3 +415,28 @@ def test_bcl_2_perturbation(model: pysb.Model, sensors_path) -> bool:
         return True
     else:
         return False
+
+
+def test_flip_perturbation(model: pysb.Model, sensors_path) -> bool:
+    """Tests the effect of reducing FLIP concentration on the apoptosis onset
+    time when using extrinsic stimuli [1]_. Reducing the initial
+    concentration of this anti-apoptotic protein should reduce onset time.
+
+    References
+    ----------
+    .. [1] Spencer, SL,; Gaudet, S; Albeck, JG; Burke, JM; Sorger,
+     PK. "Non-genetic origins of cell-to-cell variability in TRAIL-induced
+     apoptosis." Nature 459 (2009): 428-432. :DOI:`10.1038/nature08012`
+    """
+    model = apop_model(model)
+    model.load_sensors(sensors_path)
+    model.add_parameter_set({'flip_0': model.parameters['flip_0'].value // 2})
+    sim_data = model.simulate_experiment()
+
+    analyzer = apop.Apop(sim_data=sim_data, sensors_path=sensors_path)
+    analyzer.df = analyzer.df.sort_values('flip_0', ascending=True)
+    if analyzer.df.Cas3_max_time.values[0] < \
+            analyzer.df.Cas3_max_time.values[1]:
+        return True
+    else:
+        return False
