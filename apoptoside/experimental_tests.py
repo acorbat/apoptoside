@@ -3,6 +3,7 @@ import pysb
 from typing import Dict
 
 from .model import Model as apop_model
+import apoptoside.apoptoside as apop
 
 
 def test_dynamics(df: pd.Series) -> pd.Series:
@@ -359,3 +360,31 @@ def check_presence(sim_data: pd.Series, protein_name: str,
                    timepoint: int = -1) -> bool:
     """Checks whether there is presence of some protein at some timepoint."""
     return sim_data[protein_name][timepoint] > 1
+
+
+def test_bid_perturbation(model: pysb.Model, sensors_path) -> bool:
+    """Tests the effect of reducing bid concentration on the apoptosis onset
+    time when using extrinsic stimuli [1]_[2]_.
+
+    References
+    ----------
+    .. [1] Gaudet, S; Spencer, SL; Chen, WW; Sorger, PK. "Exploring the
+    contextual sensitivity of factors that determine cell-to-cell variability in
+     receptor-mediated apoptosis." PLoS Computational Biology 8 (2012).
+     :DOI:`10.1371/journal.pcbi.1002482`
+     .. [2] Spencer, SL,; Gaudet, S; Albeck, JG; Burke, JM; Sorger,
+     PK. "Non-genetic origins of cell-to-cell variability in TRAIL-induced
+     apoptosis." Nature 459 (2009): 428-432. :DOI:`10.1038/nature08012`
+    """
+    model = apop_model(model)
+    model.load_sensors(sensors_path)
+    model.add_parameter_set({'Bid_0': model.parameters['Bid_0'].value // 2})
+    sim_data = model.simulate_experiment()
+
+    analyzer = apop.Apop(sim_data=sim_data, sensors_path=sensors_path)
+    analyzer.df = analyzer.df.sort_values('Bid_0', ascending=True)
+    if analyzer.df.Cas3_max_time.values[0] > \
+            analyzer.df.Cas3_max_time.values[1]:
+        return True
+    else:
+        return False

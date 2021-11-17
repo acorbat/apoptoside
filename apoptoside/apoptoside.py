@@ -79,9 +79,12 @@ class Apop(object):
 
     def load_sim(self, results):
         self.df = results
-        self.df['stimuli'] = self.df.apply(
-            lambda x: 'intrinsic' if x['IntrinsicStimuli_0'] != 0 else 'extrinsic',
-            axis=1)
+        try:
+            self.df['stimuli'] = self.df.apply(
+                lambda x: 'intrinsic' if x['IntrinsicStimuli_0'] != 0 else 'extrinsic',
+                axis=1)
+        except KeyError:
+            self.df['stimuli'] = 'extrinsic'
         self.df['sigmoid_mask'] = self.df.apply(
             lambda row: [True] * len(row['BFP_anisotropy']),
             axis=1)
