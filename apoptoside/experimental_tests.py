@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import pysb
 from typing import Dict
@@ -445,7 +446,7 @@ def test_flip_perturbation(model: pysb.Model, sensors_path) -> bool:
 
 def test_intrinsic_xiap_perturbation(model: pysb.Model, sensors_path) -> bool:
     """Tests the effect of reducing XIAP concentration on the apoptosis onset
-    time when using extrinsic stimuli [1]_. Reducing the initial
+    time when using intrinsic stimuli [1]_. Reducing the initial
     concentration of this anti-apoptotic protein should reduce onset time.
 
     References
@@ -476,7 +477,7 @@ def test_intrinsic_xiap_perturbation(model: pysb.Model, sensors_path) -> bool:
 def test_intrinsic_caspase3_perturbation(model: pysb.Model, sensors_path) -> \
         bool:
     """Tests the effect of reducing caspase 3 concentration on the apoptosis
-    onset time when using extrinsic stimuli [1]_. Reducing the initial
+    onset time when using intrinsic stimuli [1]_. Reducing the initial
     concentration of this caspase should increase onset time.
 
     References
@@ -499,6 +500,37 @@ def test_intrinsic_caspase3_perturbation(model: pysb.Model, sensors_path) -> \
     analyzer.df = analyzer.df.sort_values('C3_0', ascending=True)
     if analyzer.df.Cas3_max_time.values[0] > \
             analyzer.df.Cas3_max_time.values[1]:
+        return True
+    else:
+        return False
+
+
+def test_intrinsic_smac_perturbation(model: pysb.Model, sensors_path) -> \
+        bool:
+    """Tests the effect of reducing Smac concentration on the apoptosis
+    onset time when using intrinsic stimuli [1]_. Reducing the initial
+    concentration of Smac should not affect considerably onset time (less
+    than 15 min effect).
+
+    References
+    ----------
+    .. [1] Rehm, M; Huber, HJ; Dussmann, H; Prehn, JHM. "Systems analysis of
+    effector caspase activation and its control by X-linked inhibitor of
+    apoptosis protein." EMBO Journal 25 (2006): 4338-4349.
+    :DOI:`10.1038/sj.emboj.7601295`
+    """
+    try:
+        intrinsic_stimuli(model)
+    except pysb.ComponentDuplicateNameError:
+        pass
+    model = apop_model(model)
+    model.load_sensors(sensors_path)
+    model.add_parameter_set({'Smac_0': model.parameters['Smac_0'].value // 2})
+    sim_data = model.simulate_experiment()
+
+    analyzer = apop.Apop(sim_data=sim_data, sensors_path=sensors_path)
+    analyzer.df = analyzer.df.sort_values('Smac_0', ascending=True)
+    if np.abs(np.diff(analyzer.df.Cas3_max_time.values)[0]) < 15:
         return True
     else:
         return False
