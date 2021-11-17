@@ -364,7 +364,8 @@ def check_presence(sim_data: pd.Series, protein_name: str,
 
 def test_bid_perturbation(model: pysb.Model, sensors_path) -> bool:
     """Tests the effect of reducing bid concentration on the apoptosis onset
-    time when using extrinsic stimuli [1]_[2]_.
+    time when using extrinsic stimuli [1]_[2]_. Reducing the initial
+    concentration of this proapoptotic protein should increase onset time.
 
     References
     ----------
@@ -384,6 +385,32 @@ def test_bid_perturbation(model: pysb.Model, sensors_path) -> bool:
     analyzer = apop.Apop(sim_data=sim_data, sensors_path=sensors_path)
     analyzer.df = analyzer.df.sort_values('Bid_0', ascending=True)
     if analyzer.df.Cas3_max_time.values[0] > \
+            analyzer.df.Cas3_max_time.values[1]:
+        return True
+    else:
+        return False
+
+
+def test_bcl_2_perturbation(model: pysb.Model, sensors_path) -> bool:
+    """Tests the effect of reducing bcl-2 concentration on the apoptosis onset
+    time when using extrinsic stimuli [1]_. Reducing concentration of this
+    anti-apoptotic protein should reduce onset time.
+
+    References
+    ----------
+    .. [1] Gaudet, S; Spencer, SL; Chen, WW; Sorger, PK. "Exploring the
+    contextual sensitivity of factors that determine cell-to-cell variability in
+     receptor-mediated apoptosis." PLoS Computational Biology 8 (2012).
+     :DOI:`10.1371/journal.pcbi.1002482`
+    """
+    model = apop_model(model)
+    model.load_sensors(sensors_path)
+    model.add_parameter_set({'Bcl2_0': model.parameters['Bcl2_0'].value // 2})
+    sim_data = model.simulate_experiment()
+
+    analyzer = apop.Apop(sim_data=sim_data, sensors_path=sensors_path)
+    analyzer.df = analyzer.df.sort_values('Bcl2_0', ascending=True)
+    if analyzer.df.Cas3_max_time.values[0] < \
             analyzer.df.Cas3_max_time.values[1]:
         return True
     else:
