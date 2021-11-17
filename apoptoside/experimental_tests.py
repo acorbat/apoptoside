@@ -1,6 +1,7 @@
 import pandas as pd
 import pysb
 from typing import Dict
+from caspase_model.shared import intrinsic_stimuli
 
 from .model import Model as apop_model
 import apoptoside.apoptoside as apop
@@ -435,6 +436,36 @@ def test_flip_perturbation(model: pysb.Model, sensors_path) -> bool:
 
     analyzer = apop.Apop(sim_data=sim_data, sensors_path=sensors_path)
     analyzer.df = analyzer.df.sort_values('flip_0', ascending=True)
+    if analyzer.df.Cas3_max_time.values[0] < \
+            analyzer.df.Cas3_max_time.values[1]:
+        return True
+    else:
+        return False
+
+
+def test_intrinsic_xiap_perturbation(model: pysb.Model, sensors_path) -> bool:
+    """Tests the effect of reducing XIAP concentration on the apoptosis onset
+    time when using extrinsic stimuli [1]_. Reducing the initial
+    concentration of this anti-apoptotic protein should reduce onset time.
+
+    References
+    ----------
+    .. [1] Rehm, M; Huber, HJ; Dussmann, H; Prehn, JHM. "Systems analysis of
+    effector caspase activation and its control by X-linked inhibitor of
+    apoptosis protein." EMBO Journal 25 (2006): 4338-4349.
+    :DOI:`10.1038/sj.emboj.7601295`
+    """
+    try:
+        intrinsic_stimuli(model)
+    except pysb.ComponentDuplicateNameError:
+        pass
+    model = apop_model(model)
+    model.load_sensors(sensors_path)
+    model.add_parameter_set({'XIAP_0': model.parameters['XIAP_0'].value // 2})
+    sim_data = model.simulate_experiment()
+
+    analyzer = apop.Apop(sim_data=sim_data, sensors_path=sensors_path)
+    analyzer.df = analyzer.df.sort_values('XIAP_0', ascending=True)
     if analyzer.df.Cas3_max_time.values[0] < \
             analyzer.df.Cas3_max_time.values[1]:
         return True
