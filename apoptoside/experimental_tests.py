@@ -534,3 +534,93 @@ def test_intrinsic_smac_perturbation(model: pysb.Model, sensors_path) -> \
         return True
     else:
         return False
+
+
+def run_all_tests(model: pysb.Model, sensors_path) -> dict:
+    """Runs all tests on the model and print the results."""
+    test_results = {}
+    success = True
+
+    print('\nTesting Caspase Dynamics\n'
+          '------------------------\n')
+    my_model = pysb.Model(base=model)
+    a_model = apop_model(my_model)
+    a_model.load_sensors(sensors_path)
+    a_model.set_duplicate_stimuli()
+    sim_data = a_model.simulate_experiment()
+    analyzer = apop.Apop(sim_data=sim_data, sensors_path=sensors_path)
+    analyzer.add_test_dynamics()
+
+    test_cols = [col for col in analyzer.df.columns if col.endswith('test')]
+    test_dynamics_results = {}
+    for stim in ['extrinsic', 'intrinsic']:
+        this_test_results = {stim + ' ' + col: analyzer.df.query('stimuli == '
+                                                                 '"%s"' %
+                                                                 stim)[
+            col].values[0]
+                             for col in test_cols}
+        test_dynamics_results.update(this_test_results)
+
+    overall_dynamics = True
+    for key, val in test_dynamics_results.items():
+        result = 'passed' if val else 'failed'
+        print(key + ': ' + result)
+
+        if not val:
+            overall_dynamics = False
+            success = False
+
+    test_results['dynamics'] = overall_dynamics
+
+    print('\nTesting Western Blot Experiments\n'
+          '--------------------------------\n')
+
+    KO_tests = {'caspase activation': test_caspase_activation,
+                'caspase 8 KO': test_caspase8_knockout,
+                'caspase 9 KO': test_caspase9_knockout,
+                'caspase 3 or 7 KO': test_caspase3or7_knockout,
+                'caspase 6 KO': test_caspase6_knockout,
+                'caspase 3 and 6 KO': test_caspase3_and_6_knockout,
+                'caspase 3 and 7 KO': test_caspase3_and_7_knockout,
+                'caspase 3, 7 and 6 KO': test_caspase3_7_and_6_knockout}
+
+    for name, test in KO_tests.items():
+        my_model = pysb.Model(base=model)
+        test_result = test(my_model)
+        result = 'passed' if test_result else 'failed'
+        print(name + ': ' + result)
+
+        test_results[name] = test_result
+        if not test_result:
+            success = False
+
+    print('\nTesting Perturbation Experiments\n'
+          '--------------------------------\n')
+
+    perturbation_tests = {'extrinsic Bid perturbation':
+                              test_bid_perturbation,
+                          'extrinsic Bcl-2 perturbation':
+                              test_bcl_2_perturbation,
+                          'extrinsic FLIP perturbation': test_flip_perturbation,
+                          'intrinsic XIAP perturbation':
+                              test_intrinsic_xiap_perturbation,
+                          'intrinsic caspase 3 perturbation':
+                              test_intrinsic_caspase3_perturbation,
+                          'intrinsic SMAC perturbation':
+                              test_intrinsic_smac_perturbation}
+
+    for name, test in perturbation_tests.items():
+        my_model = pysb.Model(base=model)
+        test_result = test(my_model, sensors_path)
+        result = 'passed' if test_result else 'failed'
+        print(name + ': ' + result)
+
+        test_results[name] = test_result
+        if not test_result:
+            success = False
+
+    print('\nOverall\n'
+          '-------\n')
+    print('Passed' if success else 'Failed')
+    test_results['success'] = success
+    return test_results
