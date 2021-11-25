@@ -44,6 +44,17 @@ def estimate_delta_b(fluo_pre, fluo_pos):
     return fluo_pre/fluo_pos - 1
 
 
+def calculate_monomer_curve(anisotropy, delta_b):
+    """Calculates monomer curves from anisotropy curves."""
+    b = 1 + delta_b
+    anisotropy_dimer = np.min(anisotropy)
+    anisotropy_monomer = np.max(anisotropy)
+    monomer_num = b * (anisotropy - anisotropy_dimer)
+    monomer_denom = anisotropy_monomer - anisotropy + monomer_num
+
+    return np.asarray(monomer_num / monomer_denom)
+
+
 def calculate_activity(time, anisotropy, delta_b, order=5, method='savgol'):
     """Calculates activity of enzyme according to anisotropy curve."""
     time_steps = np.diff(time)

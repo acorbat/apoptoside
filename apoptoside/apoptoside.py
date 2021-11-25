@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 
 from . import anisotropy_functions as af
+from . import experimental_tests as et
 from . import filter_data as fd
 from . import transformation as tf
 from .sensors import Sensors
@@ -53,11 +54,17 @@ class Apop(object):
     add_interpolation : Add an interpolation column.
     """
 
-    def __init__(self, data, save_dir=None):
+    def __init__(self, data=None, sim_data=None, save_dir=None, sensors_path=None):
 
-        self.load_df(data)
-        self.sensors = pd.DataFrame(columns=['fluorophore', 'delta_b', 'color',
+        if data is not None:
+            self.load_df(data)
+        if sensors_path is None:
+            self.sensors = pd.DataFrame(columns=['fluorophore', 'delta_b', 'color',
                                              'caspase'])
+        else:
+            self.load_sensors(sensors_path)
+        if sim_data is not None:
+            self.load_sim(sim_data)
         self.refer_to = 'Cas3'
         self.time_diff_cols = []
         self.save_dir = save_dir
@@ -69,6 +76,28 @@ class Apop(object):
             self.df = data
         else:
             self.df = pd.read_pickle(str(data))
+
+    def load_sim(self, results):
+        self.df = results
+        try:
+            self.df['stimuli'] = self.df.apply(
+                lambda x: 'intrinsic' if x['IntrinsicStimuli_0'] != 0 else 'extrinsic',
+                axis=1)
+        except KeyError:
+            self.df['stimuli'] = 'extrinsic'
+        self.df['sigmoid_mask'] = self.df.apply(
+            lambda row: [True] * len(row['BFP_anisotropy']),
+            axis=1)
+        self.df['name'] = 'simulation'
+        self.add_is_apoptotic()
+        self.df['time'] = self.df.apply(
+            lambda row: np.arange(0, len(row['BFP_anisotropy']) / 60, 1 / 60),
+            axis=1)
+        self.add_delta_b(fix_b=True)
+        self.add_activities()
+        self.add_max_times('time', 'activity', single_time_col=True)
+        self.add_time_differences(refer_to='Cas3')
+        self.add_activity_widths('time_activity', 'activity', single_time_col=False)
 
     def load_sensors(self, path):
         """Load sensors from file."""
@@ -230,15 +259,33 @@ class Apop(object):
         for sensor in self.sensors.sensors:
             fluo = sensor.name
             casp = sensor.enzyme
-            self.df[name_col(casp, 'time_activity')], self.df[name_col(casp, 'activity')] = zip(*self.df.apply(
-                lambda x: self._calculate_activity(
-                    x['time'],
-                    x[name_col(fluo, 'anisotropy')],
-                    x['sigmoid_mask'],
-                    x[name_col(fluo, 'delta_b')]
-                ),
-                axis=1
-            ))
+            self.df = self.df.join(self.df.apply(
+                lambda x: pd.Series(dict(zip([name_col(casp, 'time_activity'), name_col(casp, 'activity')],
+                                             self._calculate_activity(
+                                                 x['time'],
+                                                 x[name_col(fluo, 'anisotropy')],
+                                                 x['sigmoid_mask'],
+                                                 x[name_col(fluo, 'delta_b')]
+                                             )))),
+                axis=1))
+
+    def add_monomer_curves(self):
+        """Adds the monomer_curve column for each fluorophore using the found b
+        parameter for each row."""
+        for sensor in self.sensors.sensors:
+            fluo = sensor.name
+            casp = sensor.enzyme
+            self.df = self.df.join(self.df.apply(
+                lambda x: pd.Series(dict(zip([name_col(casp, 'time_monomer'),
+                                              name_col(casp,
+                                                       'monomer_fraction')],
+                                             self._calculate_monomer(
+                                                 x['time'],
+                                                 x[name_col(fluo, 'anisotropy')],
+                                                 x['sigmoid_mask'],
+                                                 x[name_col(fluo, 'delta_b')]
+                                             )))),
+                axis=1))
 
     def add_interpolation(self, new_time_col, time_col, curve_col,
                           all_fluo=False, all_casp=False):
@@ -326,6 +373,22 @@ class Apop(object):
                 axis=1
             )
 
+    def add_activity_widths(self, time_col, curve_col, single_time_col=False):
+        """Add the time of the maximum of curve"""
+        for sensor in self.sensors.sensors:
+            fluo = sensor.name
+            casp = sensor.enzyme
+            if single_time_col:
+                this_time_col = time_col
+            else:
+                this_time_col = name_col(fluo, time_col)
+                if this_time_col not in self.df.columns:
+                    this_time_col = name_col(casp, time_col)
+            self.df[name_col(casp, 'act_width')] = self.df.apply(
+                lambda x: self._get_activity_width(x[this_time_col], x[name_col(casp, curve_col)]),
+                axis=1
+            )
+
     def add_time_differences(self, refer_to=None):
         """Adds a column with the time differences between max activities.
         refer_to parameter can be used to refer every time to one specific
@@ -357,6 +420,31 @@ class Apop(object):
 
             vw.make_report(pdf_dir, this_df, self.sensors, hue=hue,
                            cols=self.time_diff_cols[-2:])
+
+    def add_test_dynamics(self):
+        self.df = self.df.join((self.df.apply(et.test_dynamics, axis=1)))
+
+    def _get_activity_width(self, time, activity):
+        """Calculates full width at half maximum of activity.
+
+        Parameters
+        ----------
+        time: vector
+            Time vector of data
+        activity: vector
+            Activity vector
+
+        Returns
+        -------
+        width: float
+            Full width at half maximum of activity
+        """
+        activity = activity.copy()
+        activity = activity / np.max(activity)
+        inds = np.where(activity >= 0.5)[0]
+
+        width = time[inds[-1]] - time[inds[0]]
+        return width
 
     def _generate_time_vector(self, time, time_step):
         """Generates a new time vector with same start as time, until almost
@@ -391,6 +479,17 @@ class Apop(object):
             return np.asarray(time), np.asarray(anisotropy)
 
         return tf.calculate_activity(time, anisotropy, delta_b)
+
+    def _calculate_monomer(self, time, anisotropy, mask, delta_b):
+        """Masks the anisotropy curve and calculates the corresponding
+        enzimatic activity"""
+        time = self._mask(time, mask)
+        anisotropy = self._mask(anisotropy, mask)
+
+        if not any(np.isfinite(time)):
+            return np.asarray(time), np.asarray(anisotropy)
+
+        return np.asarray(time), tf.calculate_monomer_curve(anisotropy, delta_b)
 
 
 def name_col(*args):

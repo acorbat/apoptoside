@@ -5,7 +5,7 @@ from pyDOE import lhs
 import pysb
 from pysb.simulator import ScipyOdeSimulator
 
-from caspase_model.shared import observe_biosensors
+from caspase_model.shared import observe_biosensors, intrinsic_stimuli, observe_caspases
 from . import anisotropy_functions as af
 from .sensors import Sensors
 
@@ -17,7 +17,7 @@ class Model(object):
     default. A biosensor DataFrame should be given in order to estimate
     anisotropy curves. Time vector can be changed if necessary.
     """
-    def __init__(self, model, **kwargs):
+    def __init__(self, model, biosensors=True, **kwargs):
         try:
             self.model = model(**kwargs)
         except TypeError:
@@ -32,10 +32,12 @@ class Model(object):
         self.duplicate_stimuli = False
         self.simulator = None
         self.sim_batch_size = 1
-        try:
-            observe_biosensors()
-        except pysb.ComponentDuplicateNameError:
-            pass
+        self.param_set = []
+        if biosensors:
+            try:
+                observe_biosensors()
+            except pysb.ComponentDuplicateNameError:
+                pass
 
     def load_sensors(self, path):
         """Load sensors from file."""
@@ -60,7 +62,7 @@ class Model(object):
                 rates.append(param.name)
         return rates
 
-    def get_monomer_curves(self, params=None):
+    def get_simultion_results(self, params=None):
         """Simulates model with given parameters and returns monomer curves."""
         if self.simulator is None:
             self.simulator = ScipyOdeSimulator(self.model, tspan=self.time)
@@ -70,7 +72,7 @@ class Model(object):
     def get_anisotropy_curves(self, params=None):
         """Simulates model and calculates the anisotropy curves from the
         monomer curves and parameters of biosensors."""
-        simres = self.get_monomer_curves(params=params)
+        simres = self.get_simultion_results(params=params)
         anis_curves = {}
         anis_states = {}
         for sensor in self.sensors.sensors:
@@ -133,6 +135,17 @@ class Model(object):
         self.paramsweep = self.paramsweep.append(new_param_line,
                                                  ignore_index=True)
 
+    def add_parameter_set(self, param_dict):
+        """Add a set of parameters to be used in simulation.
+
+        Parameters
+        ----------
+        param_dict: dictionary
+            A dictionary containing parameter name as keys and values as
+            parameter values to be used.
+        """
+        self.param_set.append(param_dict)
+
     def set_duplicate_stimuli(self):
         """Duplicate parameter sweep but with both stimuli separately.
         WARNING: must have L_0 and IntrinsicStimuli_0 initials."""
@@ -154,35 +167,7 @@ class Model(object):
             DataFrame containing the anisotropy curves for the simulations and
             columns with the values of the parameters changed.
         """
-        if not n_exps and len(self.paramsweep) == 0:
-            n_exps = 1
-        if not n_exps:
-            n_exps = 1000
-
-        not_correlated_params = self.paramsweep.query('correlation == "uncorrelated"')
-        matrix = lhs(len(not_correlated_params), n_exps)
-
-        mins = not_correlated_params.min_value.values
-        maxs = not_correlated_params.max_value.values
-
-        matrix = mins + (maxs - mins) * matrix
-
-        params = pd.DataFrame(matrix,
-                              columns=not_correlated_params.parameter.values)
-        for row, correlated_param in self.paramsweep.query('correlation != "uncorrelated"').iterrows():
-            correlated_to, correlation_val = correlated_param.correlation
-            param = correlated_param.parameter
-            params[param] = params[correlated_to].values * correlation_val
-
-        if self.duplicate_stimuli:
-            params['IntrinsicStimuli_0'] = 0
-            params['param_set_id'] = np.arange(len(params))
-            params_int = params.copy()
-            params_int['L_0'] = 0
-            params_int['IntrinsicStimuli_0'] = 1e2
-            params['IntrinsicStimuli_0'] = 0
-
-            params = pd.concat([params, params_int], ignore_index=True)
+        params = self._build_params_matrix(n_exps)
 
         for rows in grouper(range(len(params)), self.sim_batch_size):
             param_set_id = None
@@ -220,9 +205,136 @@ class Model(object):
 
             yield this_res
 
+    def _simulate_western_blot(self, n_exps=None):
+        """Simulate western blot experiment varying parameters with the values
+        given at paramset.
+
+        Parameters
+        ----------
+        n_exps : integer
+            Number of experiments to simulate. Default is 1 if there is no
+            paramsweep values, else it's 1000.
+
+        Returns
+        -------
+        simulated_dataframe : pandas.DataFrame
+            DataFrame containing the anisotropy curves for the simulations and
+            columns with the values of the parameters changed.
+        """
+        params = self._build_params_matrix(n_exps)
+
+        for rows in grouper(range(len(params)), self.sim_batch_size):
+            param_set_id = None
+            this_params = params.loc[rows]
+
+            this_param_dict = {}
+            for col in this_params.columns:
+                if col == 'param_set_id':
+                    param_set_id = this_params[col].values[0]
+                    continue
+
+                if self.sim_batch_size == 1:
+                    this_param_dict[col] = this_params[col].values[0]
+                else:
+                    this_param_dict[col] = this_params[col].values
+            if this_params.empty:
+                this_param_dict = None
+
+            try:
+                observe_caspases()
+            except pysb.ComponentDuplicateNameError:
+                pass
+
+            sim_res = self.get_simultion_results(params=this_param_dict)
+
+            if this_param_dict is None:
+                this_param_dict = {}
+            for col in sim_res.dtype.names:
+                if col.startswith('__'):
+                    continue
+                this_param_dict.update({col: sim_res[col]})
+
+            this_res = pd.DataFrame([this_param_dict])
+
+            if param_set_id is not None:
+                this_res['param_set_id'] = param_set_id
+
+            yield this_res
+
+    def _build_params_matrix(self, n_exps):
+        if not n_exps and len(self.paramsweep) == 0:
+            n_exps = 1
+        if not n_exps:
+            n_exps = 1000
+        params = self._generate_parameter_sweep_matrix(n_exps)
+        params = self._add_parameter_set(params)
+        if self.duplicate_stimuli:
+            try:
+                self.model.parameters['IntrinsicStimuli_0']
+            except KeyError:
+                if params.empty:
+                    params = pd.DataFrame([{'L_0': self.model.parameters['L_0'].value}])
+                try:
+                    params['L_0']
+                except KeyError:
+                    params['L_0'] = self.model.parameters['L_0'].value
+                intrinsic_stimuli(self.model)
+                self.model.parameters['IntrinsicStimuli_0'].value = 0
+            params = self._duplicate_stimuli_in_matrix(params)
+        return params
+
+    def _duplicate_stimuli_in_matrix(self, params):
+        params['IntrinsicStimuli_0'] = 0
+        params['param_set_id'] = np.arange(len(params))
+        params_int = params.copy()
+        params_int['L_0'] = 0
+        params_int['IntrinsicStimuli_0'] = 1e2
+        params['IntrinsicStimuli_0'] = 0
+        params = pd.concat([params, params_int], ignore_index=True)
+        return params
+
+    def _generate_parameter_sweep_matrix(self, n_exps):
+        not_correlated_params = self.paramsweep.query('correlation == "uncorrelated"')
+        matrix = lhs(len(not_correlated_params), n_exps)
+        mins = not_correlated_params.min_value.values
+        maxs = not_correlated_params.max_value.values
+        matrix = mins + (maxs - mins) * matrix
+        params = pd.DataFrame(matrix,
+                              columns=not_correlated_params.parameter.values)
+        for row, correlated_param in self.paramsweep.query('correlation != "uncorrelated"').iterrows():
+            correlated_to, correlation_val = correlated_param.correlation
+            param = correlated_param.parameter
+            params[param] = params[correlated_to].values * correlation_val
+
+        return params
+
+    def _add_parameter_set(self, params):
+        cols = set(params.columns)
+
+        for parameter_set in self.param_set:
+            cols.update(parameter_set.keys())
+
+        original_param_dict = {col: self.model.parameters[col].value for col in cols}
+
+        if params.empty:
+            params = pd.DataFrame([original_param_dict])
+        else:
+            params = params.append(pd.Series(original_param_dict), ignore_index=True)
+
+        for parameter_set in self.param_set:
+            this_parameter_dict = original_param_dict.copy()
+            this_parameter_dict.update(parameter_set)
+            params = params.append(pd.Series(this_parameter_dict), ignore_index=True)
+
+        return params
+
     def simulate_experiment(self, n_exps=None):
         dfs = [this for this in self._simulate_experiment(n_exps=n_exps)]
-        return pd.concat(dfs)
+        return pd.concat(dfs, ignore_index=True)
+
+    def simulate_western_blot(self, n_exps=None):
+        dfs = [this for this in self._simulate_western_blot(n_exps=n_exps)]
+        return pd.concat(dfs, ignore_index=True)
 
 
 def grouper(iterable, n):
