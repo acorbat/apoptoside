@@ -151,7 +151,7 @@ class Model(object):
         WARNING: must have L_0 and IntrinsicStimuli_0 initials."""
         self.duplicate_stimuli = True
 
-    def _simulate_experiment(self, n_exps=None):
+    def _simulate_experiment(self, n_exps=None, params=None):
         """Simulate experiments varying parameters with the values given at
         paramsweep.
 
@@ -160,6 +160,8 @@ class Model(object):
         n_exps : integer
             Number of experiments to simulate. Default is 1 if there is no
             paramsweep values, else it's 1000.
+        params : numpy.array
+            Matrix with parameters to be used in simulation.
 
         Returns
         -------
@@ -167,7 +169,8 @@ class Model(object):
             DataFrame containing the anisotropy curves for the simulations and
             columns with the values of the parameters changed.
         """
-        params = self._build_params_matrix(n_exps)
+        if params is None:
+            params = self._build_params_matrix(n_exps)
 
         for rows in grouper(range(len(params)), self.sim_batch_size):
             param_set_id = None
@@ -328,8 +331,9 @@ class Model(object):
 
         return params
 
-    def simulate_experiment(self, n_exps=None):
-        dfs = [this for this in self._simulate_experiment(n_exps=n_exps)]
+    def simulate_experiment(self, n_exps=None, params=None):
+        dfs = [this for this in self._simulate_experiment(n_exps=n_exps,
+                                                          params=params)]
         return pd.concat(dfs, ignore_index=True)
 
     def simulate_western_blot(self, n_exps=None):
@@ -365,3 +369,12 @@ def estimate_anisotropy(monomer_curve, anisotropy_monomer, anisotropy_dimer, b):
         anis_state = False
 
     return anisotropy, anis_state
+
+
+def keep_cols_from_model(df, model):
+    keep = []
+    parameter_list = [param.name for param in model.parameters]
+    for col in df.columns:
+        if col in parameter_list:
+            keep.append(col)
+    return df[keep]
