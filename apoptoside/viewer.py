@@ -12,16 +12,22 @@ from scipy import stats
 def df_viewer(df, sensors, save_dir):
     print('You can view %d curves' % len(df))
 
+    plot_count = 3
     if 'solidity' in df.columns:
-        fig, axs = plt.subplots(5, 1,
-                                figsize=(8, 10),
-                                gridspec_kw={'height_ratios': [5, 5, 5, 5, 1]},
-                                sharex=True)
+        plot_count += 1
     else:
-        fig, axs = plt.subplots(4, 1,
-                                figsize=(8, 10),
-                                gridspec_kw={'height_ratios': [5, 5, 5, 1]},
-                                sharex=True)
+        print('no solidity column')
+    if 'Cas3_activity_interpolate' in df.columns:
+        plot_count += 1
+    else:
+        print('no Cas3_activity_interpolate column, so no activity will be '
+              'shown')
+
+    fig, axs = plt.subplots(plot_count+1, 1,
+                            figsize=(8, 10),
+                            gridspec_kw={'height_ratios': [5,] * plot_count
+                                                          + [1]},
+                            sharex=True)
     plt.subplots_adjust(hspace=0)
 
     class SubPlot(object):
@@ -123,15 +129,17 @@ def df_viewer(df, sensors, save_dir):
             plt.draw()
 
     subplot_anisotropy = SubPlot(axs[0], df.iloc[0], sensors)
-    subplot_activity = SubPlot(axs[1], df.iloc[0], sensors,
-                      x_col='Cas3_time_activity_new',
-                      y_col_suffix='activity_interpolate',
-                               y_col_prefix='enzyme')
-    subplot_area = SimpleSubPlot(axs[2], df.iloc[0], x_col='time', y_col='area')
+    subplots = [subplot_anisotropy]
 
-    subplots = [subplot_anisotropy,
-                subplot_activity,
-                subplot_area]
+    if 'Cas3_activity_interpolate' in df.columns:
+        subplot_activity = SubPlot(axs[1], df.iloc[0], sensors,
+                          x_col='Cas3_time_activity_new',
+                          y_col_suffix='activity_interpolate',
+                                   y_col_prefix='enzyme')
+        subplots.append(subplot_activity)
+
+    subplot_area = SimpleSubPlot(axs[2], df.iloc[0], x_col='time', y_col='area')
+    subplots.append(subplot_area)
 
     if 'solidity' in df.columns:
         subplot_solidity = SimpleSubPlot(axs[3], df.iloc[0], x_col='time',
