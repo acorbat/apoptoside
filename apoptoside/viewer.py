@@ -12,7 +12,7 @@ from scipy import stats
 def df_viewer(df, sensors, save_dir):
     print('You can view %d curves' % len(df))
 
-    plot_count = 3
+    plot_count = 2
     if 'solidity' in df.columns:
         plot_count += 1
     else:
