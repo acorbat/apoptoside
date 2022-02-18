@@ -26,7 +26,7 @@ def df_viewer(df, sensors, save_dir):
     fig, axs = plt.subplots(plot_count+1, 1,
                             figsize=(8, 10),
                             gridspec_kw={'height_ratios': [5,] * plot_count
-                                                          + [1]},
+                                                          + [1.5]},
                             sharex=True)
     plt.subplots_adjust(hspace=0)
 
@@ -131,19 +131,23 @@ def df_viewer(df, sensors, save_dir):
     subplot_anisotropy = SubPlot(axs[0], df.iloc[0], sensors)
     subplots = [subplot_anisotropy]
 
+    area_axs_num = 1
     if 'Cas3_activity_interpolate' in df.columns:
         subplot_activity = SubPlot(axs[1], df.iloc[0], sensors,
                           x_col='Cas3_time_activity_new',
                           y_col_suffix='activity_interpolate',
                                    y_col_prefix='enzyme')
         subplots.append(subplot_activity)
+        area_axs_num += 1
 
-    subplot_area = SimpleSubPlot(axs[2], df.iloc[0], x_col='time', y_col='area')
+    subplot_area = SimpleSubPlot(axs[area_axs_num], df.iloc[0], x_col='time',
+                                 y_col='area')
     subplots.append(subplot_area)
 
     if 'solidity' in df.columns:
-        subplot_solidity = SimpleSubPlot(axs[3], df.iloc[0], x_col='time',
-                                     y_col='solidity')
+        solidity_axs_num = area_axs_num + 1
+        subplot_solidity = SimpleSubPlot(axs[solidity_axs_num], df.iloc[0],
+                                         x_col='time', y_col='solidity')
 
         subplots.append(subplot_solidity)
 
