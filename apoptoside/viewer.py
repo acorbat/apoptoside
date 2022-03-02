@@ -51,7 +51,7 @@ def df_viewer(df, sensors, save_dir):
                 this_y = df_row['_'.join([getattr(sensor, self.y_col_prefix),
                                           self.y_col_suffix])]
                 l, = self.axs.plot(time, this_y, color=sensor.color,
-                                   label=sensor.name)
+                                   label=getattr(sensor, self.y_col_prefix))
                 self.lines.append(l)
 
             plt.legend()
