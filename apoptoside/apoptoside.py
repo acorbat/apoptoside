@@ -1,7 +1,9 @@
 from itertools import combinations
 
-import pandas as pd
 import numpy as np
+import pandas as pd
+import scipy.signal as sg
+from scipy.interpolate import interp1d
 
 from . import anisotropy_functions as af
 from . import experimental_tests as et
@@ -385,7 +387,10 @@ class Apop(object):
                 if this_time_col not in self.df.columns:
                     this_time_col = name_col(casp, time_col)
             self.df[name_col(casp, 'act_width')] = self.df.apply(
-                lambda x: self._get_activity_width(x[this_time_col], x[name_col(casp, curve_col)]),
+                lambda x: self._get_activity_width(x[this_time_col],
+                                                   x[name_col(casp, curve_col)],
+                                                   x[name_col(casp, 'max_time')]
+                                                   ),
                 axis=1
             )
 
@@ -424,7 +429,7 @@ class Apop(object):
     def add_test_dynamics(self):
         self.df = self.df.join((self.df.apply(et.test_dynamics, axis=1)))
 
-    def _get_activity_width(self, time, activity):
+    def _get_activity_width(self, time, activity, max_time):
         """Calculates full width at half maximum of activity.
 
         Parameters
@@ -433,18 +438,30 @@ class Apop(object):
             Time vector of data
         activity: vector
             Activity vector
+        max_time: float
+            Time of maximum activity
 
         Returns
         -------
         width: float
             Full width at half maximum of activity
         """
-        activity = activity.copy()
-        activity = activity / np.max(activity)
-        inds = np.where(activity >= 0.5)[0]
+        max_ind = np.where(time == max_time)[0][0]
 
-        width = time[inds[-1]] - time[inds[0]]
-        return width
+        width, width_height, left_ind, right_ind = sg.peak_widths(
+            [0] + list(activity), [max_ind + 1])
+
+        f = interp1d(np.arange(len(time)), time, kind='linear')
+
+        if left_ind < 1:
+            left_ind = 1
+
+        left_time = f(left_ind - 1)
+        right_time = f(right_ind - 1)
+
+        width = right_time - left_time
+
+        return width[0]
 
     def _generate_time_vector(self, time, time_step):
         """Generates a new time vector with same start as time, until almost
