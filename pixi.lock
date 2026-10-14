@@ -163,7 +163,6 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/ptyprocess-0.7.0-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pure_eval-0.2.4-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pydantic-2.14.1-pyh5ded981_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/pydoe-0.3.8-py_1.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/noarch/pygments-2.21.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pyparsing-3.3.3-pyh5ded981_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pytest-9.1.1-pyhc364b38_2.conda
@@ -183,7 +182,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing-inspection-0.4.4-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing_extensions-4.16.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tzdata-2026c-h151e31d_0.conda
-      - conda_source: apoptoside[9c7d6a55] @ .
+      - conda_source: apoptoside[0b286011] @ .
       - pypi: git+https://github.com/acorbat/caspase_model#ef0bbe41e2ab7c8cb8b893cc98249577e3f069d3
       - pypi: git+https://github.com/acorbat/earm#957d910aef856f62486898b29254339151c125aa
       osx-arm64:
@@ -231,7 +230,6 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/ptyprocess-0.7.0-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pure_eval-0.2.4-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pydantic-2.14.1-pyh5ded981_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/pydoe-0.3.8-py_1.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/noarch/pygments-2.21.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pyparsing-3.3.3-pyh5ded981_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pytest-9.1.1-pyhc364b38_2.conda
@@ -335,7 +333,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zeromq-4.3.5-h6eb0046_12.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zlib-ng-2.3.3-h31dac16_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zstd-1.5.7-hf451053_7.conda
-      - conda_source: apoptoside[9cd830b8] @ .
+      - conda_source: apoptoside[c0437d8a] @ .
       - pypi: git+https://github.com/acorbat/caspase_model#ef0bbe41e2ab7c8cb8b893cc98249577e3f069d3
       - pypi: git+https://github.com/acorbat/earm#957d910aef856f62486898b29254339151c125aa
       win-64:
@@ -380,7 +378,6 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/prompt-toolkit-3.0.53-pyha770c72_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pure_eval-0.2.4-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pydantic-2.14.1-pyh5ded981_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/pydoe-0.3.8-py_1.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/noarch/pygments-2.21.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pyparsing-3.3.3-pyh5ded981_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pytest-9.1.1-pyhc364b38_2.conda
@@ -479,7 +476,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/win-64/zlib-1.3.2-hfd05255_3.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/zlib-ng-2.3.3-h0261ad2_1.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/zstd-1.5.7-h534d264_7.conda
-      - conda_source: apoptoside[3fbb1ed2] @ .
+      - conda_source: apoptoside[d2cd702b] @ .
       - pypi: git+https://github.com/acorbat/caspase_model#ef0bbe41e2ab7c8cb8b893cc98249577e3f069d3
       - pypi: git+https://github.com/acorbat/earm#957d910aef856f62486898b29254339151c125aa
 packages:
@@ -2872,19 +2869,6 @@ packages:
   run_exports: {}
   size: 358514
   timestamp: 1791761552444
-- conda: https://conda.anaconda.org/conda-forge/noarch/pydoe-0.3.8-py_1.tar.bz2
-  sha256: 4616364442c3c0c91188ae8b04d3146f21e8826e55e120835d910844e4dbe38e
-  md5: 6aeffd34a05a050c9b01c86de859c459
-  depends:
-  - numpy >=1.8
-  - python
-  - scipy >=0.13
-  license: BSD 3-Clause
-  purls:
-  - pkg:pypi/pydoe?source=hash-mapping
-  run_exports: {}
-  size: 13421
-  timestamp: 1531166118644
 - conda: https://conda.anaconda.org/conda-forge/noarch/pygments-2.21.0-pyhcf101f3_0.conda
   sha256: f5f015ff1bc3e1b7fc08eee096b1865234189ae0b82bebdb86a5369116e42fa0
   md5: 2882dee445dfa45b0c5afce3ffb7730a
@@ -6021,7 +6005,7 @@ packages:
     - zstd >=1.5.7,<1.6.0a0
   size: 387535
   timestamp: 1786599623274
-- conda_source: apoptoside[3fbb1ed2] @ .
+- conda_source: apoptoside[0b286011] @ .
   variants:
     target_platform: noarch
   depends:
@@ -6030,42 +6014,6 @@ packages:
   - matplotlib-base
   - numpy
   - pandas
-  - pydoe
-  - pydantic
-  - scipy
-  - seaborn-base
-  license: MIT
-  host_packages:
-  - conda: https://conda.anaconda.org/conda-forge/noarch/ca-certificates-2026.7.22-h4c7d964_0.conda
-  - conda: https://conda.anaconda.org/conda-forge/noarch/python_abi-3.15-9_cp315.conda
-  - conda: https://conda.anaconda.org/conda-forge/noarch/tzdata-2026c-h151e31d_0.conda
-  - conda: https://conda.anaconda.org/conda-forge/win-64/bzip2-1.0.8-h0ad9c76_10.conda
-  - conda: https://conda.anaconda.org/conda-forge/win-64/libexpat-2.8.5-hac47afa_0.conda
-  - conda: https://conda.anaconda.org/conda-forge/win-64/libffi-3.7.0-h3d046cb_1.conda
-  - conda: https://conda.anaconda.org/conda-forge/win-64/liblzma-5.8.3-hfd05255_1.conda
-  - conda: https://conda.anaconda.org/conda-forge/win-64/libmpdec-4.0.0-hfd05255_2.conda
-  - conda: https://conda.anaconda.org/conda-forge/win-64/libsqlite-3.54.0-hf5d6505_101.conda
-  - conda: https://conda.anaconda.org/conda-forge/win-64/libzlib-1.3.2-hfd05255_3.conda
-  - conda: https://conda.anaconda.org/conda-forge/win-64/openssl-3.6.5-hf411b9b_0.conda
-  - conda: https://conda.anaconda.org/conda-forge/win-64/python-3.15.0-h53f6dd8_101_cp315.conda
-  - conda: https://conda.anaconda.org/conda-forge/win-64/tk-8.6.13-h967ab96_4.conda
-  - conda: https://conda.anaconda.org/conda-forge/win-64/ucrt-10.0.26100.0-h57928b3_0.conda
-  - conda: https://conda.anaconda.org/conda-forge/win-64/uv-0.13.1-hf7a7c96_0.conda
-  - conda: https://conda.anaconda.org/conda-forge/win-64/uv-build-0.13.1-hdd887e8_0.conda
-  - conda: https://conda.anaconda.org/conda-forge/win-64/vc-14.5-ha367084_41.conda
-  - conda: https://conda.anaconda.org/conda-forge/win-64/vc14_runtime-14.51.36247-habf1de7_41.conda
-  - conda: https://conda.anaconda.org/conda-forge/win-64/vcomp14-14.51.36247-habf1de7_41.conda
-  - conda: https://conda.anaconda.org/conda-forge/win-64/zstd-1.5.7-h534d264_7.conda
-- conda_source: apoptoside[9c7d6a55] @ .
-  variants:
-    target_platform: noarch
-  depends:
-  - python >=3.12
-  - python *
-  - matplotlib-base
-  - numpy
-  - pandas
-  - pydoe
   - pydantic
   - scipy
   - seaborn-base
@@ -6095,7 +6043,7 @@ packages:
   - conda: https://conda.anaconda.org/conda-forge/noarch/ca-certificates-2026.7.22-hbd8a1cb_0.conda
   - conda: https://conda.anaconda.org/conda-forge/noarch/python_abi-3.15-9_cp315.conda
   - conda: https://conda.anaconda.org/conda-forge/noarch/tzdata-2026c-h151e31d_0.conda
-- conda_source: apoptoside[9cd830b8] @ .
+- conda_source: apoptoside[c0437d8a] @ .
   variants:
     target_platform: noarch
   depends:
@@ -6104,7 +6052,6 @@ packages:
   - matplotlib-base
   - numpy
   - pandas
-  - pydoe
   - pydantic
   - scipy
   - seaborn-base
@@ -6129,6 +6076,40 @@ packages:
   - conda: https://conda.anaconda.org/conda-forge/osx-arm64/uv-0.13.1-hfc06f74_0.conda
   - conda: https://conda.anaconda.org/conda-forge/osx-arm64/uv-build-0.13.1-h083d63c_0.conda
   - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zstd-1.5.7-hf451053_7.conda
+- conda_source: apoptoside[d2cd702b] @ .
+  variants:
+    target_platform: noarch
+  depends:
+  - python >=3.12
+  - python *
+  - matplotlib-base
+  - numpy
+  - pandas
+  - pydantic
+  - scipy
+  - seaborn-base
+  license: MIT
+  host_packages:
+  - conda: https://conda.anaconda.org/conda-forge/noarch/ca-certificates-2026.7.22-h4c7d964_0.conda
+  - conda: https://conda.anaconda.org/conda-forge/noarch/python_abi-3.15-9_cp315.conda
+  - conda: https://conda.anaconda.org/conda-forge/noarch/tzdata-2026c-h151e31d_0.conda
+  - conda: https://conda.anaconda.org/conda-forge/win-64/bzip2-1.0.8-h0ad9c76_10.conda
+  - conda: https://conda.anaconda.org/conda-forge/win-64/libexpat-2.8.5-hac47afa_0.conda
+  - conda: https://conda.anaconda.org/conda-forge/win-64/libffi-3.7.0-h3d046cb_1.conda
+  - conda: https://conda.anaconda.org/conda-forge/win-64/liblzma-5.8.3-hfd05255_1.conda
+  - conda: https://conda.anaconda.org/conda-forge/win-64/libmpdec-4.0.0-hfd05255_2.conda
+  - conda: https://conda.anaconda.org/conda-forge/win-64/libsqlite-3.54.0-hf5d6505_101.conda
+  - conda: https://conda.anaconda.org/conda-forge/win-64/libzlib-1.3.2-hfd05255_3.conda
+  - conda: https://conda.anaconda.org/conda-forge/win-64/openssl-3.6.5-hf411b9b_0.conda
+  - conda: https://conda.anaconda.org/conda-forge/win-64/python-3.15.0-h53f6dd8_101_cp315.conda
+  - conda: https://conda.anaconda.org/conda-forge/win-64/tk-8.6.13-h967ab96_4.conda
+  - conda: https://conda.anaconda.org/conda-forge/win-64/ucrt-10.0.26100.0-h57928b3_0.conda
+  - conda: https://conda.anaconda.org/conda-forge/win-64/uv-0.13.1-hf7a7c96_0.conda
+  - conda: https://conda.anaconda.org/conda-forge/win-64/uv-build-0.13.1-hdd887e8_0.conda
+  - conda: https://conda.anaconda.org/conda-forge/win-64/vc-14.5-ha367084_41.conda
+  - conda: https://conda.anaconda.org/conda-forge/win-64/vc14_runtime-14.51.36247-habf1de7_41.conda
+  - conda: https://conda.anaconda.org/conda-forge/win-64/vcomp14-14.51.36247-habf1de7_41.conda
+  - conda: https://conda.anaconda.org/conda-forge/win-64/zstd-1.5.7-h534d264_7.conda
 - pypi: git+https://github.com/acorbat/caspase_model#ef0bbe41e2ab7c8cb8b893cc98249577e3f069d3
   name: caspase-model
   version: 0.1.dev44+gef0bbe41e

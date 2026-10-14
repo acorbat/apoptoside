@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 import pysb
 from caspase_model.shared import intrinsic_stimuli, observe_biosensors, observe_caspases
-from pyDOE import lhs
 from pysb.simulator import ScipyOdeSimulator
+from scipy.stats import qmc
 
 from . import anisotropy_functions as af
 from .sensors import Sensors
@@ -310,7 +310,7 @@ class Model:
 
     def _generate_parameter_sweep_matrix(self, n_exps):
         not_correlated_params = self.paramsweep.query('correlation == "uncorrelated"')
-        matrix = lhs(len(not_correlated_params), n_exps)
+        matrix = qmc.LatinHypercube(d=len(not_correlated_params)).random(n_exps)
         mins = not_correlated_params.min_value.values
         maxs = not_correlated_params.max_value.values
         matrix = mins + (maxs - mins) * matrix

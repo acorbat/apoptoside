@@ -16,7 +16,6 @@ dependencies = [
   "matplotlib",
   "numpy",
   "pandas",
-  "pyDOE",
   "pydantic",
   "scipy",
   "seaborn",
