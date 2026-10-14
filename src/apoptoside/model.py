@@ -143,7 +143,9 @@ class Model:
             "correlation": [correlation],
         }
         new_param_line = pd.DataFrame(new_param_line)
-        self.paramsweep = self.paramsweep.append(new_param_line, ignore_index=True)
+        self.paramsweep = pd.concat(
+            [self.paramsweep, new_param_line], ignore_index=True
+        )
 
     def add_parameter_set(self, param_dict):
         """Add a set of parameters to be used in simulation.
@@ -333,12 +335,16 @@ class Model:
         if params.empty:
             params = pd.DataFrame([original_param_dict])
         else:
-            params = params.append(pd.Series(original_param_dict), ignore_index=True)
+            params = pd.concat(
+                [params, pd.DataFrame([original_param_dict])], ignore_index=True
+            )
 
         for parameter_set in self.param_set:
             this_parameter_dict = original_param_dict.copy()
             this_parameter_dict.update(parameter_set)
-            params = params.append(pd.Series(this_parameter_dict), ignore_index=True)
+            params = pd.concat(
+                [params, pd.DataFrame([this_parameter_dict])], ignore_index=True
+            )
 
         return params
 
