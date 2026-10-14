@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.interpolate import splev, splrep
-from scipy.misc import derivative
+from scipy.ndimage import correlate1d
 from scipy.signal import savgol_filter
 
 
@@ -62,13 +62,8 @@ def calculate_activity(time, anisotropy, delta_b, order=5, method="savgol"):
         time, anisotropy = fill_in_curves(time, anisotropy, smooth=True)
 
     if method == "findif":
-
-        def this_vect(t):
-            inds = np.searchsorted(time, t)
-            inds = np.clip(inds, 0, len(anisotropy) - 1)
-            return anisotropy[inds]
-
-        der = derivative(this_vect, time, dx=time_step, order=order)
+        weights = central_difference_weights(order)
+        der = correlate1d(anisotropy, weights, mode="nearest") / time_step
 
     elif method == "savgol":
         window_length = int(np.floor(20 / time_step))
@@ -89,6 +84,24 @@ def calculate_activity(time, anisotropy, delta_b, order=5, method="savgol"):
     activity = der / ((1 + delta_b * anisotropy_normalized) ** 2)
 
     return np.asarray(time), np.asarray(activity)
+
+
+def central_difference_weights(order):
+    """Weights of the central finite difference for the first derivative.
+
+    order is the (odd) number of points in the stencil.
+
+    >>> central_difference_weights(3)
+    array([-0.5,  0. ,  0.5])
+    """
+    if order < 3 or order % 2 == 0:
+        raise ValueError("order must be an odd number larger than 1.")
+    offsets = np.arange(order) - order // 2
+    # Taylor expansion: sum_k w_k * offset_k**j = 1 if j == 1 else 0
+    vandermonde = offsets ** np.arange(order)[:, None]
+    rhs = np.zeros(order)
+    rhs[1] = 1
+    return np.linalg.solve(vandermonde, rhs)
 
 
 def fill_in_curves(time, curve, smooth=False):

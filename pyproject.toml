@@ -18,8 +18,7 @@ dependencies = [
   "pandas",
   "pyDOE",
   "pydantic",
-  # scipy.misc.derivative was removed in scipy 1.12
-  "scipy<1.12",
+  "scipy",
   "seaborn",
 ]
 
@@ -32,8 +31,8 @@ requires = ["uv_build>=0.9"]
 build-backend = "uv_build"
 
 [tool.pytest.ini_options]
-addopts = "--import-mode=importlib"
-testpaths = ["tests"]
+addopts = "--import-mode=importlib --doctest-modules"
+testpaths = ["src", "tests"]
 
 [tool.ruff.lint.per-file-ignores]
 # Baseline for code written before adopting ruff. Remove codes as they are fixed.

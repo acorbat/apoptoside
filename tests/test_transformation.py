@@ -84,3 +84,10 @@ def test_get_region():
     with pytest.raises(ValueError):
         tf.get_region("other", curve, mask)
     assert np.isnan(tf.get_region("pre", curve, np.zeros(10, dtype=bool))).all()
+
+
+def test_calculate_activity_findif_fractional_time_step():
+    time = np.arange(0, 100) / 60
+    anisotropy = 0.2 + 1e-3 * time
+    _, activity = tf.calculate_activity(time, anisotropy, delta_b=0, method="findif")
+    np.testing.assert_allclose(activity[10:-10], 1e-3)
