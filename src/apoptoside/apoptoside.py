@@ -10,6 +10,7 @@ from . import experimental_tests as et
 from . import filter_data as fd
 from . import transformation as tf
 from . import viewer as vw
+from .model import INTRINSIC_STIMULI
 from .sensors import Sensors
 
 
@@ -84,7 +85,7 @@ class Apop:
         self.df = results
         try:
             self.df["stimuli"] = self.df.apply(
-                lambda x: "intrinsic" if x["IntrinsicStimuli_0"] != 0 else "extrinsic",
+                lambda x: "intrinsic" if x[INTRINSIC_STIMULI] != 0 else "extrinsic",
                 axis=1,
             )
         except KeyError:

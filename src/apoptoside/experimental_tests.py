@@ -1,10 +1,11 @@
 import numpy as np
 import pandas as pd
-import pysb
-from caspase_model.shared import intrinsic_stimuli
+from caspase_model.simbio_model import intrinsic
+from simbio import System
 
 import apoptoside.apoptoside as apop
 
+from .model import INTRINSIC_STIMULI, LIGAND, get_parameters
 from .model import Model as apop_model
 
 
@@ -60,7 +61,7 @@ def test_dynamics(df: pd.Series) -> pd.Series:
     return pd.Series(test_results)
 
 
-def test_caspase_activation(model: pysb.Model) -> bool:
+def test_caspase_activation(model: System | type[System]) -> bool:
     """Simple test to corroborate that every caspase is active when using
     extrinsic and intrinsic stimuli [1]_ [2]_.
 
@@ -85,7 +86,7 @@ def test_caspase_activation(model: pysb.Model) -> bool:
     )
 
 
-def test_caspase8_knockout(model: pysb.Model) -> bool:
+def test_caspase8_knockout(model: System | type[System]) -> bool:
     """Test to corroborate adequate behaviour of the model when knocking out
     caspase 8. No caspase should be active while using extrinsic stimuli.
     Intrinsic and effector caspases should be active while using intrinsic
@@ -115,7 +116,7 @@ def test_caspase8_knockout(model: pysb.Model) -> bool:
 
     return check_caspases_western_blots(
         model,
-        conditions={"C8_0": 0},
+        conditions={"rec_to_bid.C8_pro": 0},
         extrinsic_active_caspases=extrinsic_active_caspases,
         intrinsic_active_caspases=intrinsic_active_caspases,
         extrinsic_inactive_caspases=extrinsic_inactive_caspases,
@@ -123,7 +124,7 @@ def test_caspase8_knockout(model: pysb.Model) -> bool:
     )
 
 
-def test_caspase9_knockout(model: pysb.Model) -> bool:
+def test_caspase9_knockout(model: System | type[System]) -> bool:
     """Test to corroborate adequate behaviour of the model when knocking out
     caspase 9. Extrinsic and effector caspases should be active while using
     intrinsic stimuli. No caspase should be active while using intrinsic
@@ -158,7 +159,7 @@ def test_caspase9_knockout(model: pysb.Model) -> bool:
 
     return check_caspases_western_blots(
         model,
-        conditions={"Apaf_0": 0},
+        conditions={"apoptosome.Apaf_I": 0},
         extrinsic_active_caspases=extrinsic_active_caspases,
         intrinsic_active_caspases=intrinsic_active_caspases,
         extrinsic_inactive_caspases=extrinsic_inactive_caspases,
@@ -166,7 +167,7 @@ def test_caspase9_knockout(model: pysb.Model) -> bool:
     )
 
 
-def test_caspase6_knockout(model: pysb.Model) -> bool:
+def test_caspase6_knockout(model: System | type[System]) -> bool:
     """Test to corroborate adequate behaviour of the model when knocking out
     caspase 6. Intrinsic and effector caspases should be active while using
     intrinsic stimuli, but extrinsic caspase should not be active. Every
@@ -196,7 +197,7 @@ def test_caspase6_knockout(model: pysb.Model) -> bool:
 
     return check_caspases_western_blots(
         model,
-        conditions={"C6_0": 0},
+        conditions={"caspases.C6_pro": 0},
         extrinsic_active_caspases=extrinsic_active_caspases,
         intrinsic_active_caspases=intrinsic_active_caspases,
         extrinsic_inactive_caspases=extrinsic_inactive_caspases,
@@ -204,7 +205,7 @@ def test_caspase6_knockout(model: pysb.Model) -> bool:
     )
 
 
-def test_caspase3or7_knockout(model: pysb.Model) -> bool:
+def test_caspase3or7_knockout(model: System | type[System]) -> bool:
     """Test to corroborate adequate behaviour of the model when knocking out
     caspase 3 or 7. As these caspases are redundant, the test consists in
     halving caspase 3 initial concentration. All caspases should be active
@@ -224,7 +225,7 @@ def test_caspase3or7_knockout(model: pysb.Model) -> bool:
 
     return check_caspases_western_blots(
         model,
-        conditions={"C3_0": model.parameters["C3_0"].value // 2},
+        conditions={"caspases.C3_pro": get_parameters(model)["caspases.C3_pro"] // 2},
         extrinsic_active_caspases=extrinsic_active_caspases,
         intrinsic_active_caspases=intrinsic_active_caspases,
         extrinsic_inactive_caspases=extrinsic_inactive_caspases,
@@ -232,7 +233,7 @@ def test_caspase3or7_knockout(model: pysb.Model) -> bool:
     )
 
 
-def test_caspase3_and_7_knockout(model: pysb.Model) -> bool:
+def test_caspase3_and_7_knockout(model: System | type[System]) -> bool:
     """Test to corroborate adequate behaviour of the model when knocking out
     caspase 3 and 7. When using extrinsic stimuli, only caspase 8 is active.
     When using intrinsic stimuli, only a slow form of caspase 9 should be
@@ -262,7 +263,7 @@ def test_caspase3_and_7_knockout(model: pysb.Model) -> bool:
 
     return check_caspases_western_blots(
         model,
-        conditions={"C3_0": 0},
+        conditions={"caspases.C3_pro": 0},
         extrinsic_active_caspases=extrinsic_active_caspases,
         intrinsic_active_caspases=intrinsic_active_caspases,
         extrinsic_inactive_caspases=extrinsic_inactive_caspases,
@@ -270,7 +271,7 @@ def test_caspase3_and_7_knockout(model: pysb.Model) -> bool:
     )
 
 
-def test_caspase3_and_6_knockout(model: pysb.Model) -> bool:
+def test_caspase3_and_6_knockout(model: System | type[System]) -> bool:
     """Test to corroborate adequate behaviour of the model when knocking out
     caspase 3 and 6. Intrinsic and effector caspases should be active while
     using intrinsic stimuli, but extrinsic caspase should not be active. Every
@@ -300,7 +301,10 @@ def test_caspase3_and_6_knockout(model: pysb.Model) -> bool:
 
     return check_caspases_western_blots(
         model,
-        conditions={"C3_0": model.parameters["C3_0"].value // 2, "C6_0": 0},
+        conditions={
+            "caspases.C3_pro": get_parameters(model)["caspases.C3_pro"] // 2,
+            "caspases.C6_pro": 0,
+        },
         extrinsic_active_caspases=extrinsic_active_caspases,
         intrinsic_active_caspases=intrinsic_active_caspases,
         extrinsic_inactive_caspases=extrinsic_inactive_caspases,
@@ -308,7 +312,7 @@ def test_caspase3_and_6_knockout(model: pysb.Model) -> bool:
     )
 
 
-def test_caspase3_7_and_6_knockout(model: pysb.Model) -> bool:
+def test_caspase3_7_and_6_knockout(model: System | type[System]) -> bool:
     """Test to corroborate adequate behaviour of the model when knocking out
     caspase 3, 7 and 6. When using extrinsic stimuli, only caspase 8 is active.
     When using intrinsic stimuli, only a slow form of caspase 9 should be
@@ -338,7 +342,7 @@ def test_caspase3_7_and_6_knockout(model: pysb.Model) -> bool:
 
     return check_caspases_western_blots(
         model,
-        conditions={"C3_0": 0, "C6_0": 0},
+        conditions={"caspases.C3_pro": 0, "caspases.C6_pro": 0},
         extrinsic_active_caspases=extrinsic_active_caspases,
         intrinsic_active_caspases=intrinsic_active_caspases,
         extrinsic_inactive_caspases=extrinsic_inactive_caspases,
@@ -347,7 +351,7 @@ def test_caspase3_7_and_6_knockout(model: pysb.Model) -> bool:
 
 
 def check_caspases_western_blots(
-    model: pysb.Model,
+    model: System | type[System],
     conditions: dict = None,
     extrinsic_active_caspases: dict = {},
     intrinsic_active_caspases: dict = {},
@@ -360,8 +364,8 @@ def check_caspases_western_blots(
 
     Parameters
     ----------
-    model: pysb.Model
-        PySB model to test
+    model: System | type[System]
+        SimBio model to test
     conditions: dictionary
         Dictionary with specific conditions to add to the model. For example,
         caspase knockout experiments by taking procaspase concentration to 0.
@@ -391,11 +395,11 @@ def check_caspases_western_blots(
         sim_data[col + "_WB"] = sim_data.apply(lambda x: check_presence(x, col), axis=1)
 
     if conditions is not None:
-        for item in conditions.items():
-            sim_data = sim_data.query("%s == %s" % item)
+        for name, value in conditions.items():
+            sim_data = sim_data[sim_data[name] == value]
 
-    ext_sim_data = sim_data.query("IntrinsicStimuli_0 == 0")
-    int_sim_data = sim_data.query("L_0 == 0")
+    ext_sim_data = sim_data[sim_data[INTRINSIC_STIMULI] == 0]
+    int_sim_data = sim_data[sim_data[LIGAND] == 0]
 
     check_dicts = [
         extrinsic_active_caspases,
@@ -413,12 +417,14 @@ def check_caspases_western_blots(
     return True
 
 
-def simulate_for_WB(model: pysb.Model, conditions: dict = None) -> pd.DataFrame:
+def simulate_for_WB(
+    model: System | type[System], conditions: dict = None
+) -> pd.DataFrame:
     """Simulate model with specific conditions as perturbations.
 
     Parameters
     ----------
-    model: pysb.Model
+    model: System | type[System]
         Model to be evaluated and perturbed
     conditions: dictionary
         Dictionary containing parameters and values to be modified in the model
@@ -442,7 +448,7 @@ def check_presence(sim_data: pd.Series, protein_name: str, timepoint: int = -1) 
     return sim_data[protein_name][timepoint] > 1
 
 
-def test_bid_perturbation(model: pysb.Model, sensors_path) -> bool:
+def test_bid_perturbation(model: System | type[System], sensors_path) -> bool:
     """Tests the effect of reducing bid concentration on the apoptosis onset
     time when using extrinsic stimuli [1]_[2]_. Reducing the initial
     concentration of this proapoptotic protein should increase onset time.
@@ -459,18 +465,18 @@ def test_bid_perturbation(model: pysb.Model, sensors_path) -> bool:
     """
     model = apop_model(model)
     model.load_sensors(sensors_path)
-    model.add_parameter_set({"Bid_0": model.parameters["Bid_0"].value // 2})
+    model.add_parameter_set({"momp.Bid_U": model.parameters["momp.Bid_U"] // 2})
     sim_data = model.simulate_experiment()
 
     analyzer = apop.Apop(sim_data=sim_data, sensors_path=sensors_path)
-    analyzer.df = analyzer.df.sort_values("Bid_0", ascending=True)
+    analyzer.df = analyzer.df.sort_values("momp.Bid_U", ascending=True)
     if analyzer.df.Cas3_max_time.values[0] > analyzer.df.Cas3_max_time.values[1]:
         return True
     else:
         return False
 
 
-def test_bcl_2_perturbation(model: pysb.Model, sensors_path) -> bool:
+def test_bcl_2_perturbation(model: System | type[System], sensors_path) -> bool:
     """Tests the effect of reducing bcl-2 concentration on the apoptosis onset
     time when using extrinsic stimuli [1]_. Reducing concentration of this
     anti-apoptotic protein should reduce onset time.
@@ -484,18 +490,18 @@ def test_bcl_2_perturbation(model: pysb.Model, sensors_path) -> bool:
     """
     model = apop_model(model)
     model.load_sensors(sensors_path)
-    model.add_parameter_set({"Bcl2_0": model.parameters["Bcl2_0"].value // 2})
+    model.add_parameter_set({"momp.Bcl2": model.parameters["momp.Bcl2"] // 2})
     sim_data = model.simulate_experiment()
 
     analyzer = apop.Apop(sim_data=sim_data, sensors_path=sensors_path)
-    analyzer.df = analyzer.df.sort_values("Bcl2_0", ascending=True)
+    analyzer.df = analyzer.df.sort_values("momp.Bcl2", ascending=True)
     if analyzer.df.Cas3_max_time.values[0] < analyzer.df.Cas3_max_time.values[1]:
         return True
     else:
         return False
 
 
-def test_flip_perturbation(model: pysb.Model, sensors_path) -> bool:
+def test_flip_perturbation(model: System | type[System], sensors_path) -> bool:
     """Tests the effect of reducing FLIP concentration on the apoptosis onset
     time when using extrinsic stimuli [1]_. Reducing the initial
     concentration of this anti-apoptotic protein should reduce onset time.
@@ -508,18 +514,22 @@ def test_flip_perturbation(model: pysb.Model, sensors_path) -> bool:
     """
     model = apop_model(model)
     model.load_sensors(sensors_path)
-    model.add_parameter_set({"flip_0": model.parameters["flip_0"].value // 2})
+    model.add_parameter_set(
+        {"rec_to_bid.flip": model.parameters["rec_to_bid.flip"] // 2}
+    )
     sim_data = model.simulate_experiment()
 
     analyzer = apop.Apop(sim_data=sim_data, sensors_path=sensors_path)
-    analyzer.df = analyzer.df.sort_values("flip_0", ascending=True)
+    analyzer.df = analyzer.df.sort_values("rec_to_bid.flip", ascending=True)
     if analyzer.df.Cas3_max_time.values[0] < analyzer.df.Cas3_max_time.values[1]:
         return True
     else:
         return False
 
 
-def test_intrinsic_xiap_perturbation(model: pysb.Model, sensors_path) -> bool:
+def test_intrinsic_xiap_perturbation(
+    model: System | type[System], sensors_path
+) -> bool:
     """Tests the effect of reducing XIAP concentration on the apoptosis onset
     time when using intrinsic stimuli [1]_. Reducing the initial
     concentration of this anti-apoptotic protein should reduce onset time.
@@ -531,24 +541,23 @@ def test_intrinsic_xiap_perturbation(model: pysb.Model, sensors_path) -> bool:
     apoptosis protein." EMBO Journal 25 (2006): 4338-4349.
     :DOI:`10.1038/sj.emboj.7601295`
     """
-    try:
-        intrinsic_stimuli(model)
-    except pysb.ComponentDuplicateNameError:
-        pass
+    model = intrinsic(model)
     model = apop_model(model)
     model.load_sensors(sensors_path)
-    model.add_parameter_set({"XIAP_0": model.parameters["XIAP_0"].value // 2})
+    model.add_parameter_set({"caspases.XIAP": model.parameters["caspases.XIAP"] // 2})
     sim_data = model.simulate_experiment()
 
     analyzer = apop.Apop(sim_data=sim_data, sensors_path=sensors_path)
-    analyzer.df = analyzer.df.sort_values("XIAP_0", ascending=True)
+    analyzer.df = analyzer.df.sort_values("caspases.XIAP", ascending=True)
     if analyzer.df.Cas3_max_time.values[0] < analyzer.df.Cas3_max_time.values[1]:
         return True
     else:
         return False
 
 
-def test_intrinsic_caspase3_perturbation(model: pysb.Model, sensors_path) -> bool:
+def test_intrinsic_caspase3_perturbation(
+    model: System | type[System], sensors_path
+) -> bool:
     """Tests the effect of reducing caspase 3 concentration on the apoptosis
     onset time when using intrinsic stimuli [1]_. Reducing the initial
     concentration of this caspase should increase onset time.
@@ -560,24 +569,25 @@ def test_intrinsic_caspase3_perturbation(model: pysb.Model, sensors_path) -> boo
     apoptosis protein." EMBO Journal 25 (2006): 4338-4349.
     :DOI:`10.1038/sj.emboj.7601295`
     """
-    try:
-        intrinsic_stimuli(model)
-    except pysb.ComponentDuplicateNameError:
-        pass
+    model = intrinsic(model)
     model = apop_model(model)
     model.load_sensors(sensors_path)
-    model.add_parameter_set({"C3_0": model.parameters["C3_0"].value // 2})
+    model.add_parameter_set(
+        {"caspases.C3_pro": model.parameters["caspases.C3_pro"] // 2}
+    )
     sim_data = model.simulate_experiment()
 
     analyzer = apop.Apop(sim_data=sim_data, sensors_path=sensors_path)
-    analyzer.df = analyzer.df.sort_values("C3_0", ascending=True)
+    analyzer.df = analyzer.df.sort_values("caspases.C3_pro", ascending=True)
     if analyzer.df.Cas3_max_time.values[0] > analyzer.df.Cas3_max_time.values[1]:
         return True
     else:
         return False
 
 
-def test_intrinsic_smac_perturbation(model: pysb.Model, sensors_path) -> bool:
+def test_intrinsic_smac_perturbation(
+    model: System | type[System], sensors_path
+) -> bool:
     """Tests the effect of reducing Smac concentration on the apoptosis
     onset time when using intrinsic stimuli [1]_. Reducing the initial
     concentration of Smac should not affect considerably onset time (less
@@ -590,31 +600,27 @@ def test_intrinsic_smac_perturbation(model: pysb.Model, sensors_path) -> bool:
     apoptosis protein." EMBO Journal 25 (2006): 4338-4349.
     :DOI:`10.1038/sj.emboj.7601295`
     """
-    try:
-        intrinsic_stimuli(model)
-    except pysb.ComponentDuplicateNameError:
-        pass
+    model = intrinsic(model)
     model = apop_model(model)
     model.load_sensors(sensors_path)
-    model.add_parameter_set({"Smac_0": model.parameters["Smac_0"].value // 2})
+    model.add_parameter_set({"momp.Smac_M": model.parameters["momp.Smac_M"] // 2})
     sim_data = model.simulate_experiment()
 
     analyzer = apop.Apop(sim_data=sim_data, sensors_path=sensors_path)
-    analyzer.df = analyzer.df.sort_values("Smac_0", ascending=True)
+    analyzer.df = analyzer.df.sort_values("momp.Smac_M", ascending=True)
     if np.abs(np.diff(analyzer.df.Cas3_max_time.values)[0]) < 15:
         return True
     else:
         return False
 
 
-def run_all_tests(model: pysb.Model, sensors_path) -> dict:
+def run_all_tests(model: System | type[System], sensors_path) -> dict:
     """Runs all tests on the model and print the results."""
     test_results = {}
     success = True
 
     print("\nTesting Caspase Dynamics\n------------------------\n")
-    my_model = pysb.Model(base=model)
-    a_model = apop_model(my_model)
+    a_model = apop_model(model)
     a_model.load_sensors(sensors_path)
     a_model.set_duplicate_stimuli()
     sim_data = a_model.simulate_experiment()
@@ -655,8 +661,7 @@ def run_all_tests(model: pysb.Model, sensors_path) -> dict:
     }
 
     for name, test in KO_tests.items():
-        my_model = pysb.Model(base=model)
-        test_result = test(my_model)
+        test_result = test(model)
         result = "passed" if test_result else "failed"
         print(name + ": " + result)
 
@@ -676,8 +681,7 @@ def run_all_tests(model: pysb.Model, sensors_path) -> dict:
     }
 
     for name, test in perturbation_tests.items():
-        my_model = pysb.Model(base=model)
-        test_result = test(my_model, sensors_path)
+        test_result = test(model, sensors_path)
         result = "passed" if test_result else "failed"
         print(name + ": " + result)
 

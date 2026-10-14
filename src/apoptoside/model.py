@@ -1,81 +1,95 @@
-from itertools import islice
-
 import numpy as np
 import pandas as pd
-import pysb
-from caspase_model.shared import intrinsic_stimuli, observe_biosensors, observe_caspases
-from pysb.simulator import ScipyOdeSimulator
+from caspase_model.simbio_model.observables import (
+    biosensor_observables,
+    caspase_observables,
+)
+from poincare.solvers import LSODA
 from scipy.stats import qmc
+from simbio import Simulator, System
 
 from . import anisotropy_functions as af
 from .sensors import Sensors
 
+# Names of the stimuli species in the SimBio models
+LIGAND = "L"
+INTRINSIC_STIMULI = "IntrinsicStimuli"
+
+
+def get_parameters(model: System | type[System]) -> dict[str, float]:
+    """Initial conditions and rates of a SimBio model, by name."""
+    sim = Simulator(model)
+    problem = sim.create_problem()
+    names = map(str, [*sim.compiled.variables, *sim.compiled.parameters])
+    values = [*problem.y, *problem.p]
+    return dict(zip(names, map(float, values)))
+
 
 class Model:
     """Model class contains all the parameters to be used in a simulation of
-    an experiment. It knows which model to use for the apoptotic network, the
-    stimuli should be specified as intrinsic or extrinsic will be used as
-    default. A biosensor DataFrame should be given in order to estimate
-    anisotropy curves. Time vector can be changed if necessary.
+    an experiment. It knows which SimBio model to use for the apoptotic network
+    (see caspase_model.simbio_model). Keyword arguments set initial conditions
+    or rates of the model, for instance, to choose the stimuli. A biosensor
+    DataFrame should be given in order to estimate anisotropy curves. Time
+    vector can be changed if necessary.
+
+    Parameters are referred to by their name in the SimBio model,
+    such as "caspases.C3_pro" or "rec_to_bid.bid_cleavage_kf".
     """
 
-    def __init__(self, model, biosensors=True, **kwargs):
-        try:
-            self.model = model(**kwargs)
-        except TypeError:
-            self.model = pysb.Model(base=model)
-        self.parameters = self.model.parameters
-        self.initial_conditions = self.get_initial_conditions()
-        self.rates = self.get_rates()
+    def __init__(self, model: System | type[System], biosensors=True, **kwargs):
+        if kwargs:
+            model = model(**kwargs)
+        self.model = model
+
+        observables = caspase_observables(model)
+        if biosensors:
+            observables |= biosensor_observables(model)
+        self.simulator = (
+            Simulator(model)
+            .with_solver(LSODA(atol=1e-6, rtol=1e-6))
+            .with_transform(observables)
+        )
+        self._components = {
+            str(c): c
+            for c in [
+                *self.simulator.compiled.variables,
+                *self.simulator.compiled.parameters,
+            ]
+        }
+
+        self.parameters = get_parameters(model)
+        self.initial_conditions = list(map(str, self.simulator.compiled.variables))
+        self.rates = list(map(str, self.simulator.compiled.parameters))
         self.time = np.arange(0, 40000, 1)
         self.sensors = None
         self.paramsweep = pd.DataFrame(
             columns=["parameter", "min_value", "max_value", "correlation"]
         )
         self.duplicate_stimuli = False
-        self.simulator = None
-        self.sim_batch_size = 1
         self.param_set = []
-        if biosensors:
-            try:
-                observe_biosensors()
-            except pysb.ComponentDuplicateNameError:
-                pass
 
     def load_sensors(self, path):
         """Load sensors from file."""
         self.sensors = Sensors.parse_file(path)
 
     def get_initial_conditions(self):
-        """Generates a list of initial conditions (actually parameters in model
-        ending with _0)."""
-        initial_conditions = []
-        for param in self.parameters:
-            if param.name.endswith("_0"):
-                initial_conditions.append(param.name)
-        return initial_conditions
+        """Names of the initial conditions."""
+        return self.initial_conditions
 
     def get_rates(self):
-        """Generates a list of rates (actually parameters in model ending with
-        _kf, _kr or kc)."""
-        rates = []
-        for param in self.parameters:
-            if (
-                param.name.endswith("_kf")
-                or param.name.endswith("_kr")
-                or param.name.endswith("_kc")
-            ):
-                rates.append(param.name)
-        return rates
+        """Names of the rates."""
+        return self.rates
 
-    def get_simultion_results(self, params=None):
-        """Simulates model with given parameters and returns monomer curves."""
-        if self.simulator is None:
-            self.simulator = ScipyOdeSimulator(self.model, tspan=self.time)
-        simres = self.simulator.run(
-            param_values=params, num_processors=self.sim_batch_size
-        )
-        return simres.all
+    def get_simultion_results(self, params=None) -> dict[str, np.ndarray]:
+        """Simulates model with given parameters and returns observable curves."""
+        sim = self.simulator
+        if params:
+            sim = sim.with_values(
+                {self._components[name]: value for name, value in params.items()}
+            )
+        result = sim.solve(save_at=self.time)
+        return {name: result[name].values for name in result.data_vars}
 
     def get_anisotropy_curves(self, params=None):
         """Simulates model and calculates the anisotropy curves from the
@@ -86,30 +100,11 @@ class Model:
         for sensor in self.sensors.sensors:
             fluo = sensor.name
             cas = sensor.enzyme
-            anisotropy_monomer = sensor.anisotropy_monomer
-            anisotropy_dimer = sensor.anisotropy_dimer
             b = 1 + sensor.delta_b
-
-            try:
-                dimer_curve = simres["s" + cas + "_dimer"]
-                monomer_curve = simres["s" + cas + "_monomer"]
-
-                anis_curves[fluo], anis_states[fluo] = estimate_anisotropy(
-                    monomer_curve, anisotropy_monomer, anisotropy_dimer, b
-                )
-            except TypeError:
-                anis_curves[fluo] = []
-                anis_states[fluo] = []
-                for this_simres in simres:
-                    dimer_curve = this_simres["s" + cas + "_dimer"]
-                    monomer_curve = this_simres["s" + cas + "_monomer"]
-
-                    anis_curve, anis_state = estimate_anisotropy(
-                        monomer_curve, anisotropy_monomer, anisotropy_dimer, b
-                    )
-
-                    anis_curves[fluo].append(anis_curve)
-                    anis_states[fluo].append(anis_state)
+            monomer_curve = simres["s" + cas + "_monomer"]
+            anis_curves[fluo], anis_states[fluo] = estimate_anisotropy(
+                monomer_curve, sensor.anisotropy_monomer, sensor.anisotropy_dimer, b
+            )
 
         return anis_curves, anis_states
 
@@ -128,13 +123,10 @@ class Model:
             Maximum value of the parameter to sweep.
         correlation : tuple, (Default='uncorrelated')
             Tuple of parameter to which it's correlated and it's value."""
-        if (
-            parameter_name not in self.initial_conditions
-            and parameter_name not in self.rates
-        ):
-            raise ValueError("Parameter %s not in model." % parameter_name)
+        if parameter_name not in self.parameters:
+            raise ValueError(f"Parameter {parameter_name} not in model.")
         if parameter_name in self.paramsweep.parameter.values:
-            raise ValueError("Parameter %s already in list." % parameter_name)
+            raise ValueError(f"Parameter {parameter_name} already in list.")
 
         new_param_line = {
             "parameter": [parameter_name],
@@ -156,12 +148,27 @@ class Model:
             A dictionary containing parameter name as keys and values as
             parameter values to be used.
         """
+        unknown = param_dict.keys() - self.parameters.keys()
+        if unknown:
+            raise ValueError(f"Parameters {unknown} not in model.")
         self.param_set.append(param_dict)
 
     def set_duplicate_stimuli(self):
-        """Duplicate parameter sweep but with both stimuli separately.
-        WARNING: must have L_0 and IntrinsicStimuli_0 initials."""
+        """Duplicate parameter sweep but with both stimuli separately."""
+        for name in (LIGAND, INTRINSIC_STIMULI):
+            if name not in self.parameters:
+                raise ValueError(f"Model must have a {name} species.")
         self.duplicate_stimuli = True
+
+    def _iter_params(self, n_exps=None, params=None):
+        """Yield the parameter set id and the parameters of each simulation."""
+        if params is None:
+            params = self._build_params_matrix(n_exps)
+
+        for _, row in params.iterrows():
+            row = row.to_dict()
+            param_set_id = row.pop("param_set_id", None)
+            yield param_set_id, row
 
     def _simulate_experiment(self, n_exps=None, params=None):
         """Simulate experiments varying parameters with the values given at
@@ -181,26 +188,7 @@ class Model:
             DataFrame containing the anisotropy curves for the simulations and
             columns with the values of the parameters changed.
         """
-        if params is None:
-            params = self._build_params_matrix(n_exps)
-
-        for rows in grouper(range(len(params)), self.sim_batch_size):
-            param_set_id = None
-            this_params = params.loc[rows]
-
-            this_param_dict = {}
-            for col in this_params.columns:
-                if col == "param_set_id":
-                    param_set_id = this_params[col].values[0]
-                    continue
-
-                if self.sim_batch_size == 1:
-                    this_param_dict[col] = this_params[col].values[0]
-                else:
-                    this_param_dict[col] = this_params[col].values
-            if this_params.empty:
-                this_param_dict = None
-
+        for param_set_id, this_param_dict in self._iter_params(n_exps, params):
             anis_curves, anis_state = self.get_anisotropy_curves(params=this_param_dict)
             for sensor in self.sensors.sensors:
                 fluo = sensor.name
@@ -209,8 +197,6 @@ class Model:
                 anis_curves[fluo + "_anisotropy"] = anis_curves.pop(fluo)
                 anis_state[cas + "_cleaved"] = anis_state.pop(fluo)
 
-            if this_param_dict is None:
-                this_param_dict = {}
             this_param_dict.update(anis_curves)
             this_param_dict.update(anis_state)
             this_res = pd.DataFrame([this_param_dict])
@@ -233,42 +219,12 @@ class Model:
         Returns
         -------
         simulated_dataframe : pandas.DataFrame
-            DataFrame containing the anisotropy curves for the simulations and
+            DataFrame containing the observable curves for the simulations and
             columns with the values of the parameters changed.
         """
-        params = self._build_params_matrix(n_exps)
-
-        for rows in grouper(range(len(params)), self.sim_batch_size):
-            param_set_id = None
-            this_params = params.loc[rows]
-
-            this_param_dict = {}
-            for col in this_params.columns:
-                if col == "param_set_id":
-                    param_set_id = this_params[col].values[0]
-                    continue
-
-                if self.sim_batch_size == 1:
-                    this_param_dict[col] = this_params[col].values[0]
-                else:
-                    this_param_dict[col] = this_params[col].values
-            if this_params.empty:
-                this_param_dict = None
-
-            try:
-                observe_caspases()
-            except pysb.ComponentDuplicateNameError:
-                pass
-
+        for param_set_id, this_param_dict in self._iter_params(n_exps):
             sim_res = self.get_simultion_results(params=this_param_dict)
-
-            if this_param_dict is None:
-                this_param_dict = {}
-            for col in sim_res.dtype.names:
-                if col.startswith("__"):
-                    continue
-                this_param_dict.update({col: sim_res[col]})
-
+            this_param_dict.update(sim_res)
             this_res = pd.DataFrame([this_param_dict])
 
             if param_set_id is not None:
@@ -284,27 +240,19 @@ class Model:
         params = self._generate_parameter_sweep_matrix(n_exps)
         params = self._add_parameter_set(params)
         if self.duplicate_stimuli:
-            try:
-                self.model.parameters["IntrinsicStimuli_0"]
-            except KeyError:
-                if params.empty:
-                    params = pd.DataFrame([{"L_0": self.model.parameters["L_0"].value}])
-                try:
-                    params["L_0"]
-                except KeyError:
-                    params["L_0"] = self.model.parameters["L_0"].value
-                intrinsic_stimuli(self.model)
-                self.model.parameters["IntrinsicStimuli_0"].value = 0
+            if params.empty:
+                params = pd.DataFrame([{LIGAND: self.parameters[LIGAND]}])
+            if LIGAND not in params:
+                params[LIGAND] = self.parameters[LIGAND]
             params = self._duplicate_stimuli_in_matrix(params)
         return params
 
     def _duplicate_stimuli_in_matrix(self, params):
-        params["IntrinsicStimuli_0"] = 0
+        params[INTRINSIC_STIMULI] = 0
         params["param_set_id"] = np.arange(len(params))
         params_int = params.copy()
-        params_int["L_0"] = 0
-        params_int["IntrinsicStimuli_0"] = 1e2
-        params["IntrinsicStimuli_0"] = 0
+        params_int[LIGAND] = 0
+        params_int[INTRINSIC_STIMULI] = 1e2
         params = pd.concat([params, params_int], ignore_index=True)
         return params
 
@@ -315,7 +263,7 @@ class Model:
         maxs = not_correlated_params.max_value.values
         matrix = mins + (maxs - mins) * matrix
         params = pd.DataFrame(matrix, columns=not_correlated_params.parameter.values)
-        for row, correlated_param in self.paramsweep.query(
+        for _, correlated_param in self.paramsweep.query(
             'correlation != "uncorrelated"'
         ).iterrows():
             correlated_to, correlation_val = correlated_param.correlation
@@ -330,41 +278,27 @@ class Model:
         for parameter_set in self.param_set:
             cols.update(parameter_set.keys())
 
-        original_param_dict = {col: self.model.parameters[col].value for col in cols}
+        original_param_dict = {col: self.parameters[col] for col in cols}
 
         if params.empty:
             params = pd.DataFrame([original_param_dict])
         else:
-            params = pd.concat(
-                [params, pd.DataFrame([original_param_dict])], ignore_index=True
-            )
+            params = pd.concat([params, pd.DataFrame([original_param_dict])])
 
         for parameter_set in self.param_set:
-            this_parameter_dict = original_param_dict.copy()
-            this_parameter_dict.update(parameter_set)
-            params = pd.concat(
-                [params, pd.DataFrame([this_parameter_dict])], ignore_index=True
-            )
+            this_parameter_dict = original_param_dict | parameter_set
+            params = pd.concat([params, pd.DataFrame([this_parameter_dict])])
 
-        return params
+        # Parameters not swept keep their value in the model
+        return params.fillna(original_param_dict).reset_index(drop=True)
 
     def simulate_experiment(self, n_exps=None, params=None):
-        dfs = [this for this in self._simulate_experiment(n_exps=n_exps, params=params)]
+        dfs = list(self._simulate_experiment(n_exps=n_exps, params=params))
         return pd.concat(dfs, ignore_index=True)
 
     def simulate_western_blot(self, n_exps=None):
-        dfs = [this for this in self._simulate_western_blot(n_exps=n_exps)]
+        dfs = list(self._simulate_western_blot(n_exps=n_exps))
         return pd.concat(dfs, ignore_index=True)
-
-
-def grouper(iterable, n):
-    iterable = iter(iterable)
-    while True:
-        tup = list(islice(iterable, 0, n))
-        if tup:
-            yield tup
-        else:
-            break
 
 
 def estimate_anisotropy(monomer_curve, anisotropy_monomer, anisotropy_dimer, b):
@@ -386,10 +320,6 @@ def estimate_anisotropy(monomer_curve, anisotropy_monomer, anisotropy_dimer, b):
     return anisotropy, anis_state
 
 
-def keep_cols_from_model(df, model):
-    keep = []
-    parameter_list = [param.name for param in model.parameters]
-    for col in df.columns:
-        if col in parameter_list:
-            keep.append(col)
-    return df[keep]
+def keep_cols_from_model(df, model: Model):
+    """Keep the columns of df that are parameters of the model."""
+    return df[[col for col in df.columns if col in model.parameters]]

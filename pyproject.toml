@@ -12,7 +12,7 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 dependencies = [
-  "caspase-model[pysb] @ git+https://github.com/acorbat/caspase_model",
+  "caspase-model[simbio] @ git+https://github.com/acorbat/caspase_model",
   "matplotlib",
   "numpy",
   "pandas",
