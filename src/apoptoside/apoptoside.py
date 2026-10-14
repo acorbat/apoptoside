@@ -482,7 +482,8 @@ class Apop:
         width: float
             Full width at half maximum of activity
         """
-        max_ind = np.where(time == max_time)[0][0]
+        # time may be resampled, so look up the closest point instead of an exact match
+        max_ind = np.argmin(np.abs(np.asarray(time) - max_time))
 
         width, width_height, left_ind, right_ind = sg.peak_widths(
             [0] + list(activity), [max_ind + 1]
