@@ -113,7 +113,7 @@ def normalize(vect):
     """
     Returns a normalization of vect from 0 to 1
     """
-    this_vect = vect[:]
+    this_vect = np.array(vect, dtype=float)
     this_vect -= np.nanmin(this_vect)
     this_vect /= np.nanmax(this_vect)
     return this_vect
