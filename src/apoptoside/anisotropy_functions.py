@@ -84,7 +84,7 @@ def intensity_perpendicular_from_monomer_r(M, A_1, A_2, b):
     monomer fraction, monomer and dimer anisotropy, brightness relation and
     monomer brightness.
     """
-    num = intensity_parallel_from_monomer_n(M, A_1, A_2, b)
+    num = intensity_perpendicular_from_monomer_n(M, A_1, A_2, b)
     denom = intensity_parallel_from_monomer_n(M, A_1, A_2, b)
     denom += 2 * intensity_perpendicular_from_monomer_n(M, A_1, A_2, b)
     return num / denom
