@@ -1,0 +1,59 @@
+[project]
+name = "apoptoside"
+version = "0.1.0"
+description = "Package used for analysing homoFRET experiments with caspase biosensors."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+authors = [{ name = "Agustín Corbat", email = "acorbat@df.uba.ar" }]
+keywords = ["anisotropy", "apoptosis", "biosensors", "caspase", "homoFRET"]
+classifiers = [
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = [
+  "caspase-model[pysb] @ git+https://github.com/acorbat/caspase_model",
+  "matplotlib",
+  "numpy",
+  "pandas",
+  "pyDOE",
+  "pydantic",
+  # scipy.misc.derivative was removed in scipy 1.12
+  "scipy<1.12",
+  "seaborn",
+]
+
+[project.urls]
+homepage = "https://github.com/acorbat/apoptoside"
+issues = "https://github.com/acorbat/apoptoside/issues"
+
+[build-system]
+requires = ["uv_build>=0.9"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib"
+testpaths = ["tests"]
+
+[tool.ruff.lint.per-file-ignores]
+# Baseline for code written before adopting ruff. Remove codes as they are fixed.
+"src/apoptoside/*.py" = [
+  "B006",
+  "B023",
+  "C410",
+  "C419",
+  "F841",
+  "FLY002",
+  "PLR1704",
+  "RUF013",
+  "RUF059",
+  "SIM103",
+  "SIM210",
+  "UP031",
+]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.tombi]
+toml-version = "v1.1.0"

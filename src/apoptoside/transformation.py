@@ -1,7 +1,7 @@
 import numpy as np
+from scipy.interpolate import splev, splrep
 from scipy.misc import derivative
 from scipy.signal import savgol_filter
-from scipy.interpolate import splrep, splev
 
 
 def get_region(region, curve, mask, length=5):
@@ -28,20 +28,19 @@ def get_region(region, curve, mask, length=5):
 
     inds = np.where(mask)[0]
 
-    if region not in ['pre', 'pos']:
-        raise ValueError('Only pre or pos region.')
-    center = inds[0] if region == 'pre' else inds[-1]
+    if region not in ["pre", "pos"]:
+        raise ValueError("Only pre or pos region.")
+    center = inds[0] if region == "pre" else inds[-1]
 
     start_ini = np.clip(center - length // 2, 0, len(curve))
     end_ini = np.clip(center + length // 2, 0, len(curve))
 
-    return curve[start_ini:end_ini + 1]
+    return curve[start_ini : end_ini + 1]
 
 
 def estimate_delta_b(fluo_pre, fluo_pos):
-    """Estimates delta b parameter from the pre and pos cleavage fluorescence
-    """
-    return fluo_pre/fluo_pos - 1
+    """Estimates delta b parameter from the pre and pos cleavage fluorescence"""
+    return fluo_pre / fluo_pos - 1
 
 
 def calculate_monomer_curve(anisotropy, delta_b):
@@ -55,14 +54,15 @@ def calculate_monomer_curve(anisotropy, delta_b):
     return np.asarray(monomer_num / monomer_denom)
 
 
-def calculate_activity(time, anisotropy, delta_b, order=5, method='savgol'):
+def calculate_activity(time, anisotropy, delta_b, order=5, method="savgol"):
     """Calculates activity of enzyme according to anisotropy curve."""
     time_steps = np.diff(time)
     time_step = np.nanmin(time_steps)
     if not all(time_steps == time_step):
         time, anisotropy = fill_in_curves(time, anisotropy, smooth=True)
 
-    if method == 'findif':
+    if method == "findif":
+
         def this_vect(t):
             inds = np.searchsorted(time, t)
             inds = np.clip(inds, 0, len(anisotropy) - 1)
@@ -70,15 +70,20 @@ def calculate_activity(time, anisotropy, delta_b, order=5, method='savgol'):
 
         der = derivative(this_vect, time, dx=time_step, order=order)
 
-    elif method == 'savgol':
+    elif method == "savgol":
         window_length = int(np.floor(20 / time_step))
         if window_length % 2 == 0:
             window_length += 1
         window_length = np.max((window_length, 3))
 
-        der = savgol_filter(anisotropy, window_length=window_length,
-                            polyorder=2,
-                            deriv=1, delta=time_step, mode='nearest')
+        der = savgol_filter(
+            anisotropy,
+            window_length=window_length,
+            polyorder=2,
+            deriv=1,
+            delta=time_step,
+            mode="nearest",
+        )
 
     anisotropy_normalized = normalize(anisotropy)
     activity = der / ((1 + delta_b * anisotropy_normalized) ** 2)
@@ -95,11 +100,11 @@ def fill_in_curves(time, curve, smooth=False):
     nan_mask = np.isfinite(time) & np.isfinite(curve)
 
     if not smooth:
-        complete_curve = np.interp(complete_time, time, curve,
-                                   left=curve[0], right=curve[0])
+        complete_curve = np.interp(
+            complete_time, time, curve, left=curve[0], right=curve[0]
+        )
     else:
-        complete_curve = interpolate(complete_time, time[nan_mask], 
-                                     curve[nan_mask])
+        complete_curve = interpolate(complete_time, time[nan_mask], curve[nan_mask])
 
     return complete_time, complete_curve
 

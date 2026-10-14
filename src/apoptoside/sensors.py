@@ -1,20 +1,19 @@
-from typing import List, Tuple
 from pydantic import BaseModel
 
 
 class Sensor(BaseModel):
     name: str
     enzyme: str
-    color: Tuple[float, float, float]
+    color: tuple[float, float, float]
     anisotropy_monomer: float
     anisotropy_dimer: float
     delta_b: float
 
 
 class Sensors(BaseModel):
-    sensors: List[Sensor]
+    sensors: list[Sensor]
 
     def __sum__(self, item):
         if not isinstance(item, Sensor):
-            raise TypeError('Can only append a Sensor')
+            raise TypeError("Can only append a Sensor")
         self.sensors.append(item)

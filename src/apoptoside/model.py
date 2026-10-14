@@ -1,22 +1,24 @@
 from itertools import islice
+
 import numpy as np
 import pandas as pd
-from pyDOE import lhs
 import pysb
+from caspase_model.shared import intrinsic_stimuli, observe_biosensors, observe_caspases
+from pyDOE import lhs
 from pysb.simulator import ScipyOdeSimulator
 
-from caspase_model.shared import observe_biosensors, intrinsic_stimuli, observe_caspases
 from . import anisotropy_functions as af
 from .sensors import Sensors
 
 
-class Model(object):
+class Model:
     """Model class contains all the parameters to be used in a simulation of
     an experiment. It knows which model to use for the apoptotic network, the
     stimuli should be specified as intrinsic or extrinsic will be used as
     default. A biosensor DataFrame should be given in order to estimate
     anisotropy curves. Time vector can be changed if necessary.
     """
+
     def __init__(self, model, biosensors=True, **kwargs):
         try:
             self.model = model(**kwargs)
@@ -27,8 +29,9 @@ class Model(object):
         self.rates = self.get_rates()
         self.time = np.arange(0, 40000, 1)
         self.sensors = None
-        self.paramsweep = pd.DataFrame(columns=['parameter', 'min_value',
-                                       'max_value', 'correlation'])
+        self.paramsweep = pd.DataFrame(
+            columns=["parameter", "min_value", "max_value", "correlation"]
+        )
         self.duplicate_stimuli = False
         self.simulator = None
         self.sim_batch_size = 1
@@ -48,7 +51,7 @@ class Model(object):
         ending with _0)."""
         initial_conditions = []
         for param in self.parameters:
-            if param.name.endswith('_0'):
+            if param.name.endswith("_0"):
                 initial_conditions.append(param.name)
         return initial_conditions
 
@@ -57,8 +60,11 @@ class Model(object):
         _kf, _kr or kc)."""
         rates = []
         for param in self.parameters:
-            if param.name.endswith('_kf') or param.name.endswith('_kr') or \
-                    param.name.endswith('_kc'):
+            if (
+                param.name.endswith("_kf")
+                or param.name.endswith("_kr")
+                or param.name.endswith("_kc")
+            ):
                 rates.append(param.name)
         return rates
 
@@ -66,7 +72,9 @@ class Model(object):
         """Simulates model with given parameters and returns monomer curves."""
         if self.simulator is None:
             self.simulator = ScipyOdeSimulator(self.model, tspan=self.time)
-        simres = self.simulator.run(param_values=params, num_processors=self.sim_batch_size)
+        simres = self.simulator.run(
+            param_values=params, num_processors=self.sim_batch_size
+        )
         return simres.all
 
     def get_anisotropy_curves(self, params=None):
@@ -83,32 +91,31 @@ class Model(object):
             b = 1 + sensor.delta_b
 
             try:
-                dimer_curve = simres['s' + cas + '_dimer']
-                monomer_curve = simres['s' + cas + '_monomer']
+                dimer_curve = simres["s" + cas + "_dimer"]
+                monomer_curve = simres["s" + cas + "_monomer"]
 
-                anis_curves[fluo], anis_states[fluo] = estimate_anisotropy(monomer_curve,
-                                                                           anisotropy_monomer,
-                                                                           anisotropy_dimer,
-                                                                           b)
+                anis_curves[fluo], anis_states[fluo] = estimate_anisotropy(
+                    monomer_curve, anisotropy_monomer, anisotropy_dimer, b
+                )
             except TypeError:
                 anis_curves[fluo] = []
                 anis_states[fluo] = []
                 for this_simres in simres:
-                    dimer_curve = this_simres['s' + cas + '_dimer']
-                    monomer_curve = this_simres['s' + cas + '_monomer']
+                    dimer_curve = this_simres["s" + cas + "_dimer"]
+                    monomer_curve = this_simres["s" + cas + "_monomer"]
 
-                    anis_curve, anis_state = estimate_anisotropy(monomer_curve,
-                                                                 anisotropy_monomer,
-                                                                 anisotropy_dimer,
-                                                                 b)
+                    anis_curve, anis_state = estimate_anisotropy(
+                        monomer_curve, anisotropy_monomer, anisotropy_dimer, b
+                    )
 
                     anis_curves[fluo].append(anis_curve)
                     anis_states[fluo].append(anis_state)
 
         return anis_curves, anis_states
 
-    def add_parameter_sweep(self, parameter_name, min_value, max_value,
-                            correlation='uncorrelated'):
+    def add_parameter_sweep(
+        self, parameter_name, min_value, max_value, correlation="uncorrelated"
+    ):
         """Adds a parameter to the list of parameter to sweep.
 
         Parameters
@@ -121,19 +128,22 @@ class Model(object):
             Maximum value of the parameter to sweep.
         correlation : tuple, (Default='uncorrelated')
             Tuple of parameter to which it's correlated and it's value."""
-        if parameter_name not in self.initial_conditions and \
-                parameter_name not in self.rates:
-            raise ValueError('Parameter %s not in model.' % parameter_name)
+        if (
+            parameter_name not in self.initial_conditions
+            and parameter_name not in self.rates
+        ):
+            raise ValueError("Parameter %s not in model." % parameter_name)
         if parameter_name in self.paramsweep.parameter.values:
-            raise ValueError('Parameter %s already in list.' % parameter_name)
+            raise ValueError("Parameter %s already in list." % parameter_name)
 
-        new_param_line = {'parameter': [parameter_name],
-                          'min_value': [min_value],
-                          'max_value': [max_value],
-                          'correlation': [correlation]}
+        new_param_line = {
+            "parameter": [parameter_name],
+            "min_value": [min_value],
+            "max_value": [max_value],
+            "correlation": [correlation],
+        }
         new_param_line = pd.DataFrame(new_param_line)
-        self.paramsweep = self.paramsweep.append(new_param_line,
-                                                 ignore_index=True)
+        self.paramsweep = self.paramsweep.append(new_param_line, ignore_index=True)
 
     def add_parameter_set(self, param_dict):
         """Add a set of parameters to be used in simulation.
@@ -178,7 +188,7 @@ class Model(object):
 
             this_param_dict = {}
             for col in this_params.columns:
-                if col == 'param_set_id':
+                if col == "param_set_id":
                     param_set_id = this_params[col].values[0]
                     continue
 
@@ -194,8 +204,8 @@ class Model(object):
                 fluo = sensor.name
                 cas = sensor.enzyme
 
-                anis_curves[fluo + '_anisotropy'] = anis_curves.pop(fluo)
-                anis_state[cas + '_cleaved'] = anis_state.pop(fluo)
+                anis_curves[fluo + "_anisotropy"] = anis_curves.pop(fluo)
+                anis_state[cas + "_cleaved"] = anis_state.pop(fluo)
 
             if this_param_dict is None:
                 this_param_dict = {}
@@ -204,7 +214,7 @@ class Model(object):
             this_res = pd.DataFrame([this_param_dict])
 
             if param_set_id is not None:
-                this_res['param_set_id'] = param_set_id
+                this_res["param_set_id"] = param_set_id
 
             yield this_res
 
@@ -232,7 +242,7 @@ class Model(object):
 
             this_param_dict = {}
             for col in this_params.columns:
-                if col == 'param_set_id':
+                if col == "param_set_id":
                     param_set_id = this_params[col].values[0]
                     continue
 
@@ -253,14 +263,14 @@ class Model(object):
             if this_param_dict is None:
                 this_param_dict = {}
             for col in sim_res.dtype.names:
-                if col.startswith('__'):
+                if col.startswith("__"):
                     continue
                 this_param_dict.update({col: sim_res[col]})
 
             this_res = pd.DataFrame([this_param_dict])
 
             if param_set_id is not None:
-                this_res['param_set_id'] = param_set_id
+                this_res["param_set_id"] = param_set_id
 
             yield this_res
 
@@ -273,26 +283,26 @@ class Model(object):
         params = self._add_parameter_set(params)
         if self.duplicate_stimuli:
             try:
-                self.model.parameters['IntrinsicStimuli_0']
+                self.model.parameters["IntrinsicStimuli_0"]
             except KeyError:
                 if params.empty:
-                    params = pd.DataFrame([{'L_0': self.model.parameters['L_0'].value}])
+                    params = pd.DataFrame([{"L_0": self.model.parameters["L_0"].value}])
                 try:
-                    params['L_0']
+                    params["L_0"]
                 except KeyError:
-                    params['L_0'] = self.model.parameters['L_0'].value
+                    params["L_0"] = self.model.parameters["L_0"].value
                 intrinsic_stimuli(self.model)
-                self.model.parameters['IntrinsicStimuli_0'].value = 0
+                self.model.parameters["IntrinsicStimuli_0"].value = 0
             params = self._duplicate_stimuli_in_matrix(params)
         return params
 
     def _duplicate_stimuli_in_matrix(self, params):
-        params['IntrinsicStimuli_0'] = 0
-        params['param_set_id'] = np.arange(len(params))
+        params["IntrinsicStimuli_0"] = 0
+        params["param_set_id"] = np.arange(len(params))
         params_int = params.copy()
-        params_int['L_0'] = 0
-        params_int['IntrinsicStimuli_0'] = 1e2
-        params['IntrinsicStimuli_0'] = 0
+        params_int["L_0"] = 0
+        params_int["IntrinsicStimuli_0"] = 1e2
+        params["IntrinsicStimuli_0"] = 0
         params = pd.concat([params, params_int], ignore_index=True)
         return params
 
@@ -302,9 +312,10 @@ class Model(object):
         mins = not_correlated_params.min_value.values
         maxs = not_correlated_params.max_value.values
         matrix = mins + (maxs - mins) * matrix
-        params = pd.DataFrame(matrix,
-                              columns=not_correlated_params.parameter.values)
-        for row, correlated_param in self.paramsweep.query('correlation != "uncorrelated"').iterrows():
+        params = pd.DataFrame(matrix, columns=not_correlated_params.parameter.values)
+        for row, correlated_param in self.paramsweep.query(
+            'correlation != "uncorrelated"'
+        ).iterrows():
             correlated_to, correlation_val = correlated_param.correlation
             param = correlated_param.parameter
             params[param] = params[correlated_to].values * correlation_val
@@ -332,8 +343,7 @@ class Model(object):
         return params
 
     def simulate_experiment(self, n_exps=None, params=None):
-        dfs = [this for this in self._simulate_experiment(n_exps=n_exps,
-                                                          params=params)]
+        dfs = [this for this in self._simulate_experiment(n_exps=n_exps, params=params)]
         return pd.concat(dfs, ignore_index=True)
 
     def simulate_western_blot(self, n_exps=None):
@@ -357,15 +367,14 @@ def estimate_anisotropy(monomer_curve, anisotropy_monomer, anisotropy_dimer, b):
     else:
         m_curve = monomer_curve / monomer_curve.max()
 
-        anisotropy = af.anisotropy_from_monomer(m_curve,
-                                                anisotropy_monomer,
-                                                anisotropy_dimer,
-                                                b)
+        anisotropy = af.anisotropy_from_monomer(
+            m_curve, anisotropy_monomer, anisotropy_dimer, b
+        )
 
     # Check whether all dimer has transformed into monomer
     anis_state = True
     if np.abs(anisotropy[-1] - anisotropy_monomer) > 1e-8:
-        print('Not all dimer was cleaved!')
+        print("Not all dimer was cleaved!")
         anis_state = False
 
     return anisotropy, anis_state

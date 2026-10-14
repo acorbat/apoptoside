@@ -14,8 +14,9 @@ def sigmoid_der1(x, base, amplitude, rate, x0):
     """
     First derivative of sigmoid function.
     """
-    return (amplitude * rate * np.exp(-rate * (x - x0))) / \
-           ((1 + np.exp(-rate * (x - x0))) ** 2)
+    return (amplitude * rate * np.exp(-rate * (x - x0))) / (
+        (1 + np.exp(-rate * (x - x0))) ** 2
+    )
 
 
 def nanfit(func, ydata, xdata=None, timepoints=10, returnfit=False, p0=None):
@@ -122,25 +123,27 @@ def window_fit(func, y, x=None, timepoints=10, windowsize=30, windowstep=10):
         windowed_x = x[start_ind:end_ind]
         half_point = (end_ind + start_ind) // 2
 
-        chi2 = float('+inf')
+        chi2 = float("+inf")
         if np.sum(np.isfinite(windowed_y)) >= windowsize // 2:
-            for rate in (.1, .17, .1, .7, 1):
+            for rate in (0.1, 0.17, 0.1, 0.7, 1):
                 try:
-                    _popt, _, _, (_, res) = nanfit(func, windowed_y,
-                                                   xdata=windowed_x,
-                                                   timepoints=timepoints,
-                                                   p0=[0.2, 0.2, rate,
-                                                       x[half_point]],
-                                                   returnfit=True)
+                    _popt, _, _, (_, res) = nanfit(
+                        func,
+                        windowed_y,
+                        xdata=windowed_x,
+                        timepoints=timepoints,
+                        p0=[0.2, 0.2, rate, x[half_point]],
+                        returnfit=True,
+                    )
                     _chi2 = np.nansum(res * res)
                     if _chi2 < chi2:
                         popt = np.copy(_popt)
                         chi2 = np.copy(_chi2)
                 except RuntimeError:
-                    if 'popt' not in locals():
+                    if "popt" not in locals():
                         popt = [np.nan] * 4
 
-            popts.append((popt))
+            popts.append(popt)
 
         else:
             popts.append([np.nan] * 4)
@@ -153,11 +156,16 @@ def window_fit(func, y, x=None, timepoints=10, windowsize=30, windowstep=10):
     return popts
 
 
-def is_apoptotic(base, amplitude, rate, x0,
-                 base_lim=(-0.1, 0.5),
-                 amplitude_lim=(0.005, 0.5),
-                 rate_lim=(0, np.inf),
-                 x0_lim=(0, np.inf)):
+def is_apoptotic(
+    base,
+    amplitude,
+    rate,
+    x0,
+    base_lim=(-0.1, 0.5),
+    amplitude_lim=(0.005, 0.5),
+    rate_lim=(0, np.inf),
+    x0_lim=(0, np.inf),
+):
     """
     Quick checks that parameters of sigmoid are within possible range.
 
@@ -167,10 +175,12 @@ def is_apoptotic(base, amplitude, rate, x0,
     0 <= x0 <= np.inf
     """
 
-    if base_lim[0] <= base <= base_lim[1] \
-            and amplitude_lim[0] <= amplitude <= amplitude_lim[1] \
-            and rate_lim[0] <= rate <= rate_lim[1] \
-            and x0_lim[0] <= x0 <= x0_lim[1]:
+    if (
+        base_lim[0] <= base <= base_lim[1]
+        and amplitude_lim[0] <= amplitude <= amplitude_lim[1]
+        and rate_lim[0] <= rate <= rate_lim[1]
+        and x0_lim[0] <= x0 <= x0_lim[1]
+    ):
         return True
 
     else:

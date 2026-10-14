@@ -1,0 +1,33 @@
+[workspace]
+channels = ["conda-forge", "alubbock"]
+platforms = ["linux-64", "osx-arm64", "win-64"]
+preview = ["pixi-build"]
+
+[package.build]
+backend = { name = "pixi-build-python", version = "*" }
+config = { ignore-pypi-mapping = false }  # Enable automatic PyPI-to-conda mapping
+
+[environments]
+default = ["py312", "test", "lint"]
+
+[dependencies]
+apoptoside = { path = "." }
+ipykernel = "*"
+# PySB and BioNetGen are distributed in the alubbock channel.
+pysb = { version = "*", channel = "alubbock" }
+perl = "*"
+
+[pypi-dependencies]
+caspase-model = { git = "https://github.com/acorbat/caspase_model" }
+earm = { git = "https://github.com/acorbat/earm" }
+
+[feature]
+py312.dependencies = { python = "3.12.*" }
+
+[feature.lint]
+dependencies = { prek = "*", tombi = "*", ruff = "*", mdformat = "*" }
+tasks = { lint = "prek run --all-files" }
+
+[feature.test]
+dependencies = { pytest = "*" }
+tasks = { test = "pytest" }
