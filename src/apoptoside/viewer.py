@@ -6,7 +6,6 @@ import seaborn as sns
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.widgets import Button, RectangleSelector
 from scipy import stats
-from seaborn._statistics import KDE
 
 
 def df_viewer(df, sensors, save_dir):
@@ -420,11 +419,22 @@ def level_to_quantile(data, level):
     return quantile
 
 
+def kde_on_grid(kde, xs, ys, gridsize=200, cut=3):
+    """Evaluate a bivariate KDE on a grid extending cut bandwidths beyond the data,
+    as seaborn's kdeplot does."""
+    bandwidths = np.sqrt(np.diag(kde.covariance))
+    grids = [
+        np.linspace(np.min(v) - bw * cut, np.max(v) + bw * cut, gridsize)
+        for v, bw in zip((xs, ys), bandwidths)
+    ]
+    xx, yy = np.meshgrid(*grids)
+    return kde([xx.ravel(), yy.ravel()]).reshape(xx.shape)
+
+
 def get_level_for_kde(xs, ys, percentage):
     data = pd.DataFrame(np.array([xs, ys]).T, columns=["x", "y"])
-    sns_kde = KDE()
-    my_kde = sns_kde._fit([data["x"].values, data["y"].values], None)
-    data["kde"] = my_kde.evaluate([data.x.values, data.y.values])
+    kde = stats.gaussian_kde([data["x"].values, data["y"].values], bw_method="scott")
+    data["kde"] = kde.evaluate([data.x.values, data.y.values])
     data.sort_values(by="kde", inplace=True, ascending=False, ignore_index=True)
     ind = np.floor(len(data) * percentage)
     if ind > 0:
@@ -433,7 +443,7 @@ def get_level_for_kde(xs, ys, percentage):
         print("index obtained was lower than one observation.")
     level = data.loc[ind].kde
 
-    density, _ = sns_kde(x1=xs, x2=ys)
+    density = kde_on_grid(kde, xs, ys)
     quantile = level_to_quantile(density, level)
     return quantile
 
