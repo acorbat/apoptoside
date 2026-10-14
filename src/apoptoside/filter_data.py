@@ -56,7 +56,7 @@ def nanfit(func, ydata, xdata=None, timepoints=10, returnfit=False, p0=None):
 
     mask = np.where(np.isfinite(ydata))
 
-    if mask == np.array([]):
+    if mask[0].size == 0:
         popt = None
         pcov = None
     else:
