@@ -472,7 +472,11 @@ def plot_kde(
 ):
     """Plots a single kde plot with marginal dist plots on JointGrig g."""
 
-    this_map = matplotlib.cm.get_cmap(cmap)
+    if isinstance(cmap, matplotlib.colors.Colormap):
+        this_map = cmap
+    else:
+        # Also accepts seaborn palettes, such as the default "Blues_d"
+        this_map = sns.color_palette(cmap, as_cmap=True)
     this_color = this_map(0.7)
     if kind == "hist":
         alpha = 0
