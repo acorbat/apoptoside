@@ -331,7 +331,7 @@ def plot_delta_b_histogram(df, sensors):
 
 
 def plot_histogram_2d(
-    df, sensors, kind="histogram_2d", hue=None, cols=["BFP_to_Cit", "BFP_to_Kate"]
+    df, sensors, kind="histogram_2d", hue=None, cols=("BFP_to_Cit", "BFP_to_Kate")
 ):
     """Generates a 2D histogram of the given DataFrame and sensor dictionary."""
     x_data_col, y_data_col = cols
@@ -368,7 +368,7 @@ def plot_histogram_2d(
     g.ax_joint.axvline(x=0, ls="--", color="k", alpha=0.3)
 
 
-def make_report(pdf_dir, df, sensors, hue=None, cols=["BFP_to_Cit", "BFP_to_Kate"]):
+def make_report(pdf_dir, df, sensors, hue=None, cols=("BFP_to_Cit", "BFP_to_Kate")):
     with PdfPages(str(pdf_dir)) as pp:
         plot_delta_b_histogram(df, sensors)
         pp.savefig()

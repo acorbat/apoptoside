@@ -353,10 +353,10 @@ def test_caspase3_7_and_6_knockout(model: System | type[System]) -> bool:
 def check_caspases_western_blots(
     model: System | type[System],
     conditions: dict | None = None,
-    extrinsic_active_caspases: dict = {},
-    intrinsic_active_caspases: dict = {},
-    extrinsic_inactive_caspases: dict = {},
-    intrinsic_inactive_caspases: dict = {},
+    extrinsic_active_caspases: dict | None = None,
+    intrinsic_active_caspases: dict | None = None,
+    extrinsic_inactive_caspases: dict | None = None,
+    intrinsic_inactive_caspases: dict | None = None,
 ) -> bool:
     """Tests whether a model under the given conditions has active or inactive
     caspases as evaluated through western blot while using extrinsic or
@@ -402,10 +402,10 @@ def check_caspases_western_blots(
     int_sim_data = sim_data[sim_data[LIGAND] == 0]
 
     check_dicts = [
-        extrinsic_active_caspases,
-        intrinsic_active_caspases,
-        extrinsic_inactive_caspases,
-        intrinsic_inactive_caspases,
+        extrinsic_active_caspases or {},
+        intrinsic_active_caspases or {},
+        extrinsic_inactive_caspases or {},
+        intrinsic_inactive_caspases or {},
     ]
     datas = [ext_sim_data, int_sim_data, ext_sim_data, int_sim_data]
     states = ["active", "active", "inactive", "inactive"]

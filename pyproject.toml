@@ -36,7 +36,6 @@ testpaths = ["src", "tests"]
 [tool.ruff.lint.per-file-ignores]
 # Baseline for code written before adopting ruff. Remove codes as they are fixed.
 "src/apoptoside/*.py" = [
-  "B006",
   "B023",
   "PLR1704",
 ]
