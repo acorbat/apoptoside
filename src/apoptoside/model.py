@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 from caspase_model.simbio_model.observables import (
@@ -71,7 +73,7 @@ class Model:
 
     def load_sensors(self, path):
         """Load sensors from file."""
-        self.sensors = Sensors.parse_file(path)
+        self.sensors = Sensors.model_validate_json(Path(path).read_text())
 
     def get_initial_conditions(self):
         """Names of the initial conditions."""
