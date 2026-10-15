@@ -579,12 +579,13 @@ def plot_kdes(
             cmap=cmaps,
             label=labels,
             gridsize=gridsizes,
+            levels=levels,
         )
     else:
         for (
             this_var,
             this_df,
-        ), this_cmap, gridsize, kind, vmin, vmax, levels, fill, lw in zip(
+        ), this_cmap, gridsize, kind, vmin, vmax, this_levels, fill, lw in zip(
             df.groupby(hue), cmaps, gridsizes, kinds, vmins, vmaxs, levelss, fills, lws
         ):
             plot_kde(
@@ -595,7 +596,7 @@ def plot_kdes(
                 label=this_var,
                 gridsize=gridsize,
                 kind=kind,
-                levels=levels,
+                levels=this_levels,
                 level_func=level_func,
                 vmin=vmin,
                 vmax=vmax,

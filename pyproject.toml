@@ -37,7 +37,6 @@ testpaths = ["src", "tests"]
 # Baseline for code written before adopting ruff. Remove codes as they are fixed.
 "src/apoptoside/*.py" = [
   "B023",
-  "PLR1704",
 ]
 
 [tool.ruff.format]
