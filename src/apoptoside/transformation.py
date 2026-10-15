@@ -148,7 +148,4 @@ def single_apoptotic(mask):
 
     inds = np.where(mask)[0]
 
-    if (np.diff(inds) != 1).any():
-        return False
-
-    return True
+    return not (np.diff(inds) != 1).any()

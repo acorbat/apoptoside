@@ -352,7 +352,7 @@ def test_caspase3_7_and_6_knockout(model: System | type[System]) -> bool:
 
 def check_caspases_western_blots(
     model: System | type[System],
-    conditions: dict = None,
+    conditions: dict | None = None,
     extrinsic_active_caspases: dict = {},
     intrinsic_active_caspases: dict = {},
     extrinsic_inactive_caspases: dict = {},
@@ -412,13 +412,13 @@ def check_caspases_western_blots(
 
     for check_dict, data, state in zip(check_dicts, datas, states):
         for casp, presence in check_dict.items():
-            if all(data["_".join([casp, state, "WB"])] != presence):
+            if all(data[f"{casp}_{state}_WB"] != presence):
                 return False
     return True
 
 
 def simulate_for_WB(
-    model: System | type[System], conditions: dict = None
+    model: System | type[System], conditions: dict | None = None
 ) -> pd.DataFrame:
     """Simulate model with specific conditions as perturbations.
 
@@ -470,10 +470,7 @@ def test_bid_perturbation(model: System | type[System], sensors_path) -> bool:
 
     analyzer = apop.Apop(sim_data=sim_data, sensors_path=sensors_path)
     analyzer.df = analyzer.df.sort_values("momp.Bid_U", ascending=True)
-    if analyzer.df.Cas3_max_time.values[0] > analyzer.df.Cas3_max_time.values[1]:
-        return True
-    else:
-        return False
+    return analyzer.df.Cas3_max_time.values[0] > analyzer.df.Cas3_max_time.values[1]
 
 
 def test_bcl_2_perturbation(model: System | type[System], sensors_path) -> bool:
@@ -495,10 +492,7 @@ def test_bcl_2_perturbation(model: System | type[System], sensors_path) -> bool:
 
     analyzer = apop.Apop(sim_data=sim_data, sensors_path=sensors_path)
     analyzer.df = analyzer.df.sort_values("momp.Bcl2", ascending=True)
-    if analyzer.df.Cas3_max_time.values[0] < analyzer.df.Cas3_max_time.values[1]:
-        return True
-    else:
-        return False
+    return analyzer.df.Cas3_max_time.values[0] < analyzer.df.Cas3_max_time.values[1]
 
 
 def test_flip_perturbation(model: System | type[System], sensors_path) -> bool:
@@ -521,10 +515,7 @@ def test_flip_perturbation(model: System | type[System], sensors_path) -> bool:
 
     analyzer = apop.Apop(sim_data=sim_data, sensors_path=sensors_path)
     analyzer.df = analyzer.df.sort_values("rec_to_bid.flip", ascending=True)
-    if analyzer.df.Cas3_max_time.values[0] < analyzer.df.Cas3_max_time.values[1]:
-        return True
-    else:
-        return False
+    return analyzer.df.Cas3_max_time.values[0] < analyzer.df.Cas3_max_time.values[1]
 
 
 def test_intrinsic_xiap_perturbation(
@@ -549,10 +540,7 @@ def test_intrinsic_xiap_perturbation(
 
     analyzer = apop.Apop(sim_data=sim_data, sensors_path=sensors_path)
     analyzer.df = analyzer.df.sort_values("caspases.XIAP", ascending=True)
-    if analyzer.df.Cas3_max_time.values[0] < analyzer.df.Cas3_max_time.values[1]:
-        return True
-    else:
-        return False
+    return analyzer.df.Cas3_max_time.values[0] < analyzer.df.Cas3_max_time.values[1]
 
 
 def test_intrinsic_caspase3_perturbation(
@@ -579,10 +567,7 @@ def test_intrinsic_caspase3_perturbation(
 
     analyzer = apop.Apop(sim_data=sim_data, sensors_path=sensors_path)
     analyzer.df = analyzer.df.sort_values("caspases.C3_pro", ascending=True)
-    if analyzer.df.Cas3_max_time.values[0] > analyzer.df.Cas3_max_time.values[1]:
-        return True
-    else:
-        return False
+    return analyzer.df.Cas3_max_time.values[0] > analyzer.df.Cas3_max_time.values[1]
 
 
 def test_intrinsic_smac_perturbation(
@@ -608,10 +593,7 @@ def test_intrinsic_smac_perturbation(
 
     analyzer = apop.Apop(sim_data=sim_data, sensors_path=sensors_path)
     analyzer.df = analyzer.df.sort_values("momp.Smac_M", ascending=True)
-    if np.abs(np.diff(analyzer.df.Cas3_max_time.values)[0]) < 15:
-        return True
-    else:
-        return False
+    return np.abs(np.diff(analyzer.df.Cas3_max_time.values)[0]) < 15
 
 
 def run_all_tests(model: System | type[System], sensors_path) -> dict:
@@ -631,7 +613,7 @@ def run_all_tests(model: System | type[System], sensors_path) -> dict:
     test_dynamics_results = {}
     for stim in ["extrinsic", "intrinsic"]:
         this_test_results = {
-            stim + " " + col: analyzer.df.query('stimuli == "%s"' % stim)[col].values[0]
+            stim + " " + col: analyzer.df.query(f'stimuli == "{stim}"')[col].values[0]
             for col in test_cols
         }
         test_dynamics_results.update(this_test_results)

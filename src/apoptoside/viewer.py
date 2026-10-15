@@ -9,7 +9,7 @@ from scipy import stats
 
 
 def df_viewer(df, sensors, save_dir):
-    print("You can view %d curves" % len(df))
+    print(f"You can view {len(df)} curves")
 
     plot_count = 2
     if "solidity" in df.columns:
@@ -21,7 +21,7 @@ def df_viewer(df, sensors, save_dir):
     else:
         print("no Cas3_activity_interpolate column, so no activity will be shown")
 
-    fig, axs = plt.subplots(
+    _fig, axs = plt.subplots(
         plot_count + 1,
         1,
         figsize=(8, 10),
@@ -112,9 +112,8 @@ def df_viewer(df, sensors, save_dir):
             drug = df_row.drug
             plasmid = df_row.plasmid
             self.axs.set_title(
-                "index: %s; date: %s; drug: %s; \n "
-                "position: %d; label: %d; plasmid: %s"
-                % (ind, date, drug, pos, label, plasmid)
+                f"index: {ind}; date: {date}; drug: {drug}; \n "
+                f"position: {int(pos)}; label: {int(label)}; plasmid: {plasmid}"
             )
 
     class SimpleSubPlot:
@@ -207,7 +206,7 @@ def df_viewer(df, sensors, save_dir):
 
             times = df.loc[self.this_ind].time
 
-            mask = [True if t_ini <= time <= t_end else False for time in times]
+            mask = [t_ini <= time <= t_end for time in times]
 
             return mask
 
@@ -278,9 +277,7 @@ def view_curves(axs, df_row, sensors, lines=None, fill=None):
     date = df_row.date
     drug = df_row.drug
     plasmid = df_row.plasmid
-    axs.set_title(
-        "ind: %s; date: %s; drug: %s; plasmid: %s" % (ind, date, drug, plasmid)
-    )
+    axs.set_title(f"ind: {ind}; date: {date}; drug: {drug}; plasmid: {plasmid}")
 
     if lines is None:
         plt.sca(axs)

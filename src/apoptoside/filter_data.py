@@ -175,16 +175,12 @@ def is_apoptotic(
     0 <= x0 <= np.inf
     """
 
-    if (
+    return bool(
         base_lim[0] <= base <= base_lim[1]
         and amplitude_lim[0] <= amplitude <= amplitude_lim[1]
         and rate_lim[0] <= rate <= rate_lim[1]
         and x0_lim[0] <= x0 <= x0_lim[1]
-    ):
-        return True
-
-    else:
-        return False
+    )
 
 
 def is_apoptotic_region(mask, popts, windowsize=50, windowstep=30):

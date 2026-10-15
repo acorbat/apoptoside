@@ -38,16 +38,7 @@ testpaths = ["src", "tests"]
 "src/apoptoside/*.py" = [
   "B006",
   "B023",
-  "C410",
-  "C419",
-  "F841",
-  "FLY002",
   "PLR1704",
-  "RUF013",
-  "RUF059",
-  "SIM103",
-  "SIM210",
-  "UP031",
 ]
 
 [tool.ruff.format]

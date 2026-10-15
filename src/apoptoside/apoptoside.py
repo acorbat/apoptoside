@@ -154,7 +154,7 @@ class Apop:
             fluo = sensor.name
             self.df[fluo + "_apoptotic"] = self.df[
                 name_col(fluo, "sigmoid_popts")
-            ].apply(lambda x: any([fd.is_apoptotic(*popt) for popt in x]))
+            ].apply(lambda x: any(fd.is_apoptotic(*popt) for popt in x))
 
     def view(self, skip_non_apoptotic=False):
         """Calls the viewer to manually curate the data and select the
@@ -169,7 +169,7 @@ class Apop:
             apoptotic_columns = [
                 sensor.name + "_apoptotic" for sensor in self.sensors.sensors
             ]
-            if not all([col in self.df.columns for col in apoptotic_columns]):
+            if not all(col in self.df.columns for col in apoptotic_columns):
                 print("filter_non_apoptotic method has not been run on DataFrame.")
                 return
 
@@ -258,7 +258,7 @@ class Apop:
         if fix_b:
             for sensor in self.sensors.sensors:
                 fluo = sensor.name
-                self.df["_".join([fluo, "delta_b"])] = sensor.delta_b
+                self.df[f"{fluo}_delta_b"] = sensor.delta_b
 
         else:
             for sensor in self.sensors.sensors:
@@ -454,7 +454,7 @@ class Apop:
         """Makes the pdf reports grouping by every var at groupby and adding
         their case at the name."""
         for this_var, this_df in self.df.groupby(groupby):
-            this_var = list([this_var]) if isinstance(this_var, str) else list(this_var)
+            this_var = [this_var] if isinstance(this_var, str) else list(this_var)
             this_var.append(base_pdf_dir.name)
             pdf_dir = base_pdf_dir.with_name("_".join(this_var))
 
@@ -487,7 +487,7 @@ class Apop:
         # time may be resampled, so look up the closest point instead of an exact match
         max_ind = np.argmin(np.abs(np.asarray(time) - max_time))
 
-        width, width_height, left_ind, right_ind = sg.peak_widths(
+        width, _width_height, left_ind, right_ind = sg.peak_widths(
             [0] + list(activity), [max_ind + 1]
         )
 
