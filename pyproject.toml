@@ -34,10 +34,8 @@ addopts = "--import-mode=importlib --doctest-modules"
 testpaths = ["src", "tests"]
 
 [tool.ruff.lint.per-file-ignores]
-# Baseline for code written before adopting ruff. Remove codes as they are fixed.
-"src/apoptoside/*.py" = [
-  "B023",
-]
+# The lambdas using loop variables are applied to DataFrames within the loop.
+"src/apoptoside/{apoptoside,experimental_tests}.py" = ["B023"]
 
 [tool.ruff.format]
 docstring-code-format = true
